@@ -5,39 +5,140 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anahit Ghazaryan</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 <body class="main">
     <header>
             <a href="mailto:example@email.com">contact me</a>
         </header>
 
-    <div class="scene">
-        <div class="floor"></div>
-        
-        
+    <div class="scene">      
         <main>
             <section class="title">
-                <h1>anahit ghazaryan</h1>
-                <h1>անահիտ ղազարյան</h1>
+                <h1>anahit ghazaryan - անահիտ ղազարյան</h1>
             </section>
+
+            <div class="filter-container">
+                <div id="tag-bar"></div>
+            </div>
+
+            <div class="database-wrapper">
+                <table id="artist-database">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">ID</th>
+                            <th onclick="sortTable(1)">Title</th>
+                            <th onclick="sortTable(2)">Year</th>
+                            <th onclick="sortTable(3)">Place</th>
+                            <th onclick="sortTable(4)">Collaborators</th>
+                        </tr>
+                    </thead>
+                    <tbody id="database-body">
+                        </tbody>
+                </table>
+            </div>
         </main>
-        <a class="between-text-and-image">between the text and the image</a>
     </div>
+
      <footer>
             <p>© 2026 Anahit Ghazaryan. All rights reserved.</p>
         </footer>
-    <script>
-  const scene = document.querySelector('.scene');
+<script>
+    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv";
 
-  document.addEventListener('mousemove', (e) => {
-    // Calculate mouse position as a percentage of the screen
-    const x = (window.innerWidth / 2 - e.pageX) / 400  ;
-    const y = (window.innerHeight / 2 - e.pageY) / 400;
+    // 1. LOAD THE DATA
+    Papa.parse(sheetURL, {
+        download: true,
+        header: true,
+        complete: function(results) {
+            const data = results.data;
+            const tableBody = document.getElementById('database-body');
+            const tagBar = document.getElementById('tag-bar');
 
-    // Apply rotation to the scene
-    scene.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
-  });
-</script> 
+            let allTags = new Set(); // To store unique medium types
+            
+            data.forEach(project => {
+                if (project.project_name) {
+                    const mediumTags = project.medium ? project.medium.split(',').map(t => t.trim()) : [];
+                    mediumTags.forEach(tag => { if(tag) allTags.add(tag); });
+
+                    const row = `<tr class="project-row" data-tags="${mediumTags.join('|')}">
+                        <td>${project.project_id}</td>
+                        <td>${project.project_name}</td>
+                        <td>${project.year}</td>
+                        <td>${project.place}</td>
+                        <td>${project.collaborators}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                }
+            });
+
+            // Build the Tag Bar HTML
+            let tagHTML = `<button class="tag-btn active" onclick="filterByTag('all', this)">all</button>`;
+            Array.from(allTags).sort().forEach(tag => {
+                tagHTML += `<button class="tag-btn" onclick="filterByTag('${tag}', this)">${tag}</button>`;
+            });
+            if(tagBar) tagBar.innerHTML = tagHTML;
+        }
+    });
+
+    // 2. FILTERING LOGIC
+    function filterByTag(selectedTag, buttonEl) {
+        const rows = document.querySelectorAll('.project-row');
+        const buttons = document.querySelectorAll('.tag-btn');
+
+        // Update active button styling
+        buttons.forEach(btn => btn.classList.remove('active'));
+        buttonEl.classList.add('active');
+
+        rows.forEach(row => {
+            const rowTags = row.getAttribute('data-tags').split('|');
+            if (selectedTag === 'all' || rowTags.includes(selectedTag)) {
+                row.style.display = ""; 
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    // 3. SORTING LOGIC (The "Organizable" part)
+    function sortTable(n) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("artist-database");
+        switching = true;
+        dir = "asc"; 
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount ++;      
+            } else {
+                if (switchcount == 0 && dir == "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+    }
+</script>
 
 </body>
 </html>
