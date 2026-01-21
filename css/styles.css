@@ -1,0 +1,94 @@
+
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Noto Serif Armenian', serif;
+    color: black;
+    overflow: hidden;
+    height: 100%;
+    /* Creates the 3D space */
+    perspective: 1000px; 
+}
+
+body {
+    background-color: thistle;
+}
+
+/* The wrapper that holds everything in 3D */
+.scene {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    display: flex;
+    flex-direction: column;
+}
+
+.floor {
+    position: absolute;
+    width: 200vw;
+    height: 200vh;
+    top: 50%;
+    left: -50%;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 100px 100px;
+    /* Rotates the floor to lay flat on the "ground" */
+    transform: rotateX(90deg) translateY(-70%); 
+    transform-origin: center;
+}
+
+header {
+    position: fixed;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    z-index: 10;
+    transform: translateZ(20px); /* Floats slightly forward */
+}
+
+a {
+    text-decoration: none;
+    color: black;
+    font-weight: bold;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-style: preserve-3d;
+}
+
+.title {
+    transform: translateZ(-500px); /* Pushes the name way forward */
+    text-align: center;
+}
+
+h1 { 
+    font-size: clamp(1.6rem, 6.8vw, 4.6rem);
+    font-weight: 700;
+    text-shadow: 20px 20px 15px rgba(0, 0, 0, 0.2); /* Deeper shadow for 3D feel */
+    margin: 0;
+    pointer-events: none;
+    line-height: 1.2;
+}
+.between-text-and-image {
+    position: absolute;
+    top: 10%;
+    left: 20%;
+    transform: translate(-50%, -50%) translateZ(-100px); /* Positioned between text and image */
+    font-size: clamp(1rem, 3vw, 2rem);
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3);
+}
+
+footer {
+    position: fixed;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    transform: translateZ(10px);
+}

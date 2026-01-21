@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anahit Ghazaryan</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="main">
+    <header>
+            <a href="mailto:example@email.com">contact me</a>
+        </header>
+
+    <div class="scene">
+        <div class="floor"></div>
+        
+        
+        <main>
+            <section class="title">
+                <h1>anahit ghazaryan</h1>
+                <h1>անահիտ ղազարյան</h1>
+            </section>
+        </main>
+        <a class="between-text-and-image">between the text and the image</a>
+    </div>
+     <footer>
+            <p>© 2026 Anahit Ghazaryan. All rights reserved.</p>
+        </footer>
+    <script>
+  const scene = document.querySelector('.scene');
+
+  document.addEventListener('mousemove', (e) => {
+    // Calculate mouse position as a percentage of the screen
+    const x = (window.innerWidth / 2 - e.pageX) / 400  ;
+    const y = (window.innerHeight / 2 - e.pageY) / 400;
+
+    // Apply rotation to the scene
+    scene.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+  });
+</script> 
+
+</body>
+</html>
