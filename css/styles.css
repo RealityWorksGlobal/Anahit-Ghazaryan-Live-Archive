@@ -1,156 +1,263 @@
-/* --- Global Styles --- */
+/* =========================================
+   1. GLOBAL RESET & TYPOGRAPHY
+   ========================================= */
 :root {
-    --bg-color: #ffffff;
-    --text-color: #1a1a1a;
-    --accent-color: #666666;
-    --border-color: #e0e0e0;
+    --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --color-text: #1a1a1a;
+    --color-bg: #ffffff;
+    --color-border: #e0e0e0;
+    --color-hover: #f4f4f4;
 }
 
 body {
     margin: 0;
     padding: 0;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    line-height: 1.6;
+    font-family: var(--font-main);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden; /* Prevent scrolling the body, only overlays scroll */
 }
 
-.scene {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px 20px;
+a { color: inherit; text-decoration: none; }
+ul { list-style: none; padding: 0; }
+
+/* =========================================
+   2. MAIN SCENE (LAYER 0 - The Dots)
+   ========================================= */
+#main-scene {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    z-index: 0;
 }
 
-.title h1 {
+/* Container for dots must fill the screen but let clicks pass through */
+#dots-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none; /* Allows clicking through empty space */
+}
+
+/* The Dots themselves */
+.dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #000;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: auto; /* Re-enable clicking for the dot itself */
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    z-index: 2;
+}
+
+.dot:hover {
+    transform: scale(2.5);
+    background-color: #555;
+}
+
+/* The Central Object (Name) */
+.central-object {
+    z-index: 10;
+    position: relative;
+    cursor: pointer;
+    padding: 20px;
+    transition: transform 0.3s ease;
+    /* Optional: subtle background to ensure readability over dots */
+    background: rgba(255,255,255,0.8); 
+    border-radius: 4px;
+}
+
+.central-object:hover {
+    transform: scale(1.05);
+}
+
+.central-object h1 {
+    font-weight: 400;
+    font-size: 1.8rem;
+    margin: 0;
+    letter-spacing: -0.02em;
+    text-transform: lowercase;
+}
+
+/* =========================================
+   3. OVERLAYS (GLASSMORPHISM)
+   ========================================= */
+.overlay {
+    display: none; /* Toggled by JS */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    
+    /* The Glass Effect */
+    background-color: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
+    justify-content: center;
+    align-items: center;
+}
+
+.overlay-content {
+    background: #fff;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    border: 1px solid var(--color-border);
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn { to { opacity: 1; } }
+
+/* LAYER Z-INDICES */
+.layer-middle { z-index: 100; } /* Archive Table */
+.layer-top    { z-index: 200; } /* Project Details */
+
+/* =========================================
+   4. ARCHIVE POPUP STYLES
+   ========================================= */
+.archive-content {
+    width: 90%;
+    height: 90vh;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+}
+
+.archive-content .title h1 {
+    margin-top: 0;
     font-weight: 300;
     font-size: 1.5rem;
-    letter-spacing: 0.05em;
-    margin-bottom: 50px;
-    text-transform: lowercase;
+    margin-bottom: 20px;
 }
 
-/* --- Filter / Tag Bar --- */
-.filter-container {
-    margin-bottom: 30px;
-}
-
-#tag-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.tag-btn {
-    background: none;
-    border: 1px solid var(--border-color);
-    padding: 6px 14px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    text-transform: lowercase;
-    transition: all 0.2s ease;
-}
-
-.tag-btn:hover {
-    border-color: var(--text-color);
-}
-
-.tag-btn.active {
-    background-color: var(--text-color);
-    color: white;
-    border-color: var(--text-color);
-}
-
-/* --- Database Table --- */
+/* Database Table */
 .database-wrapper {
-    overflow-x: auto;
+    flex-grow: 1;
+    overflow-y: auto; /* Internal scroll for table */
+    margin-top: 20px;
 }
 
 #artist-database {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 0.9rem;
 }
 
 #artist-database th {
     text-align: left;
-    padding: 15px 10px;
-    border-bottom: 1px solid var(--text-color);
-    text-transform: lowercase;
+    padding: 12px 8px;
+    border-bottom: 1px solid #000;
     font-weight: 600;
     cursor: pointer;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    background: #fff; /* Keeps header visible when scrolling */
+    z-index: 10;
 }
 
 #artist-database td {
-    padding: 15px 10px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--color-border);
     vertical-align: top;
 }
 
-#artist-database tr:hover td {
-    background-color: #fbfbfb;
+/* Row Cursor Logic */
+.project-row {
+    transition: background-color 0.15s ease;
 }
 
-/* --- The Popup / Overlay --- */
-.overlay {
-    display: none; /* Controlled by JS */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.7); /* Translucent White */
-    backdrop-filter: blur(10px); /* The "Glass" effect */
-    -webkit-backdrop-filter: blur(10px);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 0.3s ease;
+.project-row.has-folder {
+    cursor: pointer; /* Hand cursor ONLY if folder exists */
 }
 
-.overlay-content {
-    background: white;
+.project-row.has-folder:hover {
+    background-color: var(--color-hover);
+}
+
+.sort-icon { font-size: 0.7em; color: #999; margin-left: 5px; }
+
+/* Filter Tags */
+.filter-container { margin-bottom: 10px; }
+#tag-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.tag-btn {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    padding: 4px 14px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.tag-btn.active, .tag-btn:hover {
+    background-color: #000;
+    color: #fff;
+    border-color: #000;
+}
+
+/* =========================================
+   5. PROJECT DETAILS POPUP STYLES
+   ========================================= */
+.project-content {
     width: 90%;
-    max-width: 800px;
-    max-height: 85vh;
+    max-width: 600px;
+    max-height: 80vh;
     padding: 50px;
-    position: relative;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
     overflow-y: auto;
-    border-radius: 2px;
 }
 
 .close-btn {
     position: absolute;
-    top: 20px;
-    right: 30px;
-    font-size: 30px;
-    font-weight: 200;
-    cursor: pointer;
-    color: var(--accent-color);
+    top: 20px; right: 20px;
+    background: none; border: none;
+    font-size: 2rem; font-weight: 200;
+    cursor: pointer; color: #666;
+    line-height: 1;
 }
 
-.close-btn:hover {
-    color: black;
+.close-btn:hover { color: #000; }
+
+#popup-title {
+    margin-top: 0; font-weight: 400;
+    font-size: 1.8rem; margin-bottom: 5px;
 }
 
-#project-details h2 {
-    font-weight: 400;
-    font-size: 2rem;
-    margin-top: 0;
+#popup-meta {
+    color: #666; font-style: italic; margin-top: 0;
 }
 
-#project-details hr {
-    border: 0;
-    border-top: 1px solid var(--border-color);
-    margin: 20px 0;
+#popup-description {
+    white-space: pre-wrap;
+    line-height: 1.7;
 }
 
-/* --- Footer --- */
+/* =========================================
+   6. HEADER & FOOTER
+   ========================================= */
+/* Since main body is hidden, header/footer might be inside overlay or hidden */
+header {
+    position: fixed;
+    top: 0; right: 0;
+    padding: 20px;
+    z-index: 50; /* Above dots */
+}
+
+.contact-link {
+    font-size: 0.8rem;
+    text-decoration: underline;
+}
+
 footer {
-    text-align: center;
-    padding: 60px 20px;
-    font-size: 0.75rem;
-    color: var(--accent-color);
-    text-transform: lowercase;
+    display: none; /* Optional: hide footer in this spatial layout */
 }
