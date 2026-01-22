@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anahit Ghazaryan</title>
     <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>  
 </head>
+
+<div id="project-overlay" class="overlay">
+    <div class="overlay-content">
+        <span class="close-btn" onclick="closeProject()">&times;</span>
+        <div id="project-details"></div>
+    </div>
+</div>
+
 <body class="main">
     <header>
             <a href="mailto:example@email.com">contact me</a>
@@ -17,6 +25,8 @@
             <section class="title">
                 <h1>anahit ghazaryan - անահիտ ղազարյան</h1>
             </section>
+            
+            
 
             <div class="filter-container">
                 <div id="tag-bar"></div>
@@ -30,7 +40,8 @@
                             <th onclick="sortTable(1)">Title</th>
                             <th onclick="sortTable(2)">Year</th>
                             <th onclick="sortTable(3)">Place</th>
-                            <th onclick="sortTable(4)">Collaborators</th>
+                            <th onclick="sortTable(4)">Institution</th>
+                            <th onclick="sortTable(5)">Collaborators</th>
                         </tr>
                     </thead>
                     <tbody id="database-body">
@@ -43,51 +54,101 @@
      <footer>
             <p>© 2026 Anahit Ghazaryan. All rights reserved.</p>
         </footer>
+
+
+
+
+
+
+
+To implement the popup and deep-linking system, we need to make three specific adjustments: store the data globally so the popup can read it, add the "click" trigger to your table rows, and create the logic to open/close the viewer.
+
+Here is your script perfectly organized:
+
+JavaScript
+
 <script>
     const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv";
+    
+    // NEW: We store the data here so the popup can access it anytime
+    let allProjectData = [];
 
     // 1. LOAD THE DATA
     Papa.parse(sheetURL, {
         download: true,
         header: true,
         complete: function(results) {
-            const data = results.data;
+            allProjectData = results.data; // Store data globally
             const tableBody = document.getElementById('database-body');
             const tagBar = document.getElementById('tag-bar');
 
-            let allTags = new Set(); // To store unique medium types
+            let allTags = new Set(); 
             
-            data.forEach(project => {
+            allProjectData.forEach(project => {
                 if (project.project_name) {
                     const mediumTags = project.medium ? project.medium.split(',').map(t => t.trim()) : [];
                     mediumTags.forEach(tag => { if(tag) allTags.add(tag); });
 
-                    const row = `<tr class="project-row" data-tags="${mediumTags.join('|')}">
-                        <td>${project.project_id}</td>
-                        <td>${project.project_name}</td>
-                        <td>${project.year}</td>
-                        <td>${project.place}</td>
-                        <td>${project.collaborators}</td>
-                    </tr>`;
+                    // MODIFIED: Added onclick="openProject" and a cursor style
+                    const row = `
+                        <tr class="project-row" 
+                            data-tags="${mediumTags.join('|')}" 
+                            onclick="openProject('${project.folder}')" 
+                            style="cursor:pointer;">
+                            <td>${project.project_id}</td>
+                            <td>${project.project_name}</td>
+                            <td>${project.year}</td>
+                            <td>${project.place}</td>
+                            <td>${project.institution}</td>
+                            <td>${project.collaborators}</td>
+                        </tr>`;
                     tableBody.innerHTML += row;
                 }
             });
 
             // Build the Tag Bar HTML
-            let tagHTML = `<button class="tag-btn active" onclick="filterByTag('all', this)">all</button>`;
+            let tagHTML = `<button class="tag-btn active" onclick="filterByTag('all', this); event.stopPropagation();">all</button>`;
             Array.from(allTags).sort().forEach(tag => {
-                tagHTML += `<button class="tag-btn" onclick="filterByTag('${tag}', this)">${tag}</button>`;
+                tagHTML += `<button class="tag-btn" onclick="filterByTag('${tag}', this); event.stopPropagation();">${tag}</button>`;
             });
             if(tagBar) tagBar.innerHTML = tagHTML;
+
+            // NEW: Check if URL already has a #project-name and open it
+            const initialHash = window.location.hash.substring(1);
+            if (initialHash) openProject(initialHash);
         }
     });
+
+    // NEW: POPUP LOGIC
+    function openProject(folderName) {
+        if (!folderName) return;
+        
+        const project = allProjectData.find(p => p.folder === folderName);
+        if (project) {
+            window.location.hash = folderName; // Updates the URL
+            const overlay = document.getElementById('project-overlay');
+            const details = document.getElementById('project-details');
+            
+            overlay.style.display = "flex";
+            details.innerHTML = `
+                <h2>${project.project_name}</h2>
+                <p><em>${project.year} — ${project.medium}</em></p>
+                <hr>
+                <p>${project.description || 'Project details coming soon.'}</p>
+            `;
+        }
+    }
+
+    function closeProject() {
+        document.getElementById('project-overlay').style.display = "none";
+        // Remove the hash from URL without reloading
+        history.pushState("", document.title, window.location.pathname);
+    }
 
     // 2. FILTERING LOGIC
     function filterByTag(selectedTag, buttonEl) {
         const rows = document.querySelectorAll('.project-row');
         const buttons = document.querySelectorAll('.tag-btn');
-
-        // Update active button styling
         buttons.forEach(btn => btn.classList.remove('active'));
         buttonEl.classList.add('active');
 
@@ -101,7 +162,7 @@
         });
     }
 
-    // 3. SORTING LOGIC (The "Organizable" part)
+    // 3. SORTING LOGIC
     function sortTable(n) {
         var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
         table = document.getElementById("artist-database");
@@ -115,15 +176,9 @@
                 x = rows[i].getElementsByTagName("TD")[n];
                 y = rows[i + 1].getElementsByTagName("TD")[n];
                 if (dir == "asc") {
-                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                        shouldSwitch = true;
-                        break;
-                    }
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
                 } else if (dir == "desc") {
-                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                        shouldSwitch = true;
-                        break;
-                    }
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
                 }
             }
             if (shouldSwitch) {
@@ -131,10 +186,7 @@
                 switching = true;
                 switchcount ++;      
             } else {
-                if (switchcount == 0 && dir == "asc") {
-                    dir = "desc";
-                    switching = true;
-                }
+                if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
             }
         }
     }

@@ -1,0 +1,156 @@
+/* --- Global Styles --- */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #1a1a1a;
+    --accent-color: #666666;
+    --border-color: #e0e0e0;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.scene {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.title h1 {
+    font-weight: 300;
+    font-size: 1.5rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 50px;
+    text-transform: lowercase;
+}
+
+/* --- Filter / Tag Bar --- */
+.filter-container {
+    margin-bottom: 30px;
+}
+
+#tag-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tag-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-transform: lowercase;
+    transition: all 0.2s ease;
+}
+
+.tag-btn:hover {
+    border-color: var(--text-color);
+}
+
+.tag-btn.active {
+    background-color: var(--text-color);
+    color: white;
+    border-color: var(--text-color);
+}
+
+/* --- Database Table --- */
+.database-wrapper {
+    overflow-x: auto;
+}
+
+#artist-database {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.9rem;
+}
+
+#artist-database th {
+    text-align: left;
+    padding: 15px 10px;
+    border-bottom: 1px solid var(--text-color);
+    text-transform: lowercase;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#artist-database td {
+    padding: 15px 10px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+
+#artist-database tr:hover td {
+    background-color: #fbfbfb;
+}
+
+/* --- The Popup / Overlay --- */
+.overlay {
+    display: none; /* Controlled by JS */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7); /* Translucent White */
+    backdrop-filter: blur(10px); /* The "Glass" effect */
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease;
+}
+
+.overlay-content {
+    background: white;
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    padding: 50px;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    border-radius: 2px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 30px;
+    font-weight: 200;
+    cursor: pointer;
+    color: var(--accent-color);
+}
+
+.close-btn:hover {
+    color: black;
+}
+
+#project-details h2 {
+    font-weight: 400;
+    font-size: 2rem;
+    margin-top: 0;
+}
+
+#project-details hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 20px 0;
+}
+
+/* --- Footer --- */
+footer {
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    text-transform: lowercase;
+}
