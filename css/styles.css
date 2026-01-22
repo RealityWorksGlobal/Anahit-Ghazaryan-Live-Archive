@@ -33,7 +33,7 @@ ul { list-style: none; padding: 0; }
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #fff;
+    background: #ffffff;
     z-index: 0;
 }
 
@@ -42,7 +42,7 @@ ul { list-style: none; padding: 0; }
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    z-index: 1;
+    z-index: 10;
     pointer-events: none; /* Allows clicking through empty space */
 }
 
@@ -51,29 +51,23 @@ ul { list-style: none; padding: 0; }
     position: absolute;
     width: 12px;
     height: 12px;
-    background-color: #000;
+    background-color: #002FA7;
     border-radius: 50%;
-    cursor: pointer;
-    pointer-events: auto; /* Re-enable clicking for the dot itself */
-    transition: transform 0.2s ease, background-color 0.2s ease;
-    z-index: 2;
-}
-
-.dot:hover {
-    transform: scale(2.5);
-    background-color: #555;
+    transform: translate(-50%, -50%);
+    will-change: transform, opacity, box-shadow;
+    transition: background-color 0.1s ease;
+    z-index: 11;
+    pointer-events: auto;
 }
 
 /* The Central Object (Name) */
 .central-object {
-    z-index: 10;
+    z-index: 1;
     position: relative;
     cursor: pointer;
     padding: 20px;
     transition: transform 0.3s ease;
-    /* Optional: subtle background to ensure readability over dots */
-    background: rgba(255,255,255,0.8); 
-    border-radius: 4px;
+    background: none; 
 }
 
 .central-object:hover {
@@ -98,7 +92,7 @@ ul { list-style: none; padding: 0; }
     width: 100%; height: 100%;
     
     /* The Glass Effect */
-    background-color: rgba(255, 255, 255, 0.65);
+    background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     
@@ -107,10 +101,8 @@ ul { list-style: none; padding: 0; }
 }
 
 .overlay-content {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.5);
     position: relative;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-    border: 1px solid var(--color-border);
     opacity: 0;
     animation: fadeIn 0.3s forwards;
 }
