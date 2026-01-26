@@ -3,41 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
     <title>Anahit Ghazaryan</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>  
 </head>
 <body class="main">
 
-    <div id="project-overlay" class="overlay layer-top">
-        <div class="overlay-content project-content">
-            <button class="close-btn" onclick="closeProject()">&times;</button>
-            <div id="project-details">
-                <h2 id="popup-title"></h2>
-                <p id="popup-meta"></p>
-                <hr>
-                <div id="popup-description"></div>
+    <div id="custom-cursor"></div>
+
+    <header>
+        <h1 class="title" onclick="openAbout()">anahit ghazaryan</h1>
+    </header>
+
+    <div id="about-overlay" class="overlay layer-about">
+        <div class="popup-panel size-about">
+            <button class="close-btn" onclick="closeAbout()"></button>
+            
+            <div id="bio-container" class="scroll-content">
+                Loading biography...
+            </div>
+        </div>
+    </div>
+
+<div id="project-overlay" class="overlay layer-top">
+        <div class="popup-panel size-project">
+            <button class="close-btn" onclick="closeProject()"></button>
+            
+            <div class="project-split-layout">
+                
+                <div class="project-visuals">
+                    <div id="carousel-container">
+                        <img id="carousel-image" src="" alt="">
+                        
+                        <button class="carousel-nav prev" onclick="prevImage()">&#8249;</button>
+                        <button class="carousel-nav next" onclick="nextImage()">&#8250;</button>
+                        
+                        <div id="carousel-counter"></div>
+                    </div>
+                </div>
+
+                <div class="project-info scroll-content">
+                    <h2 id="popup-title"></h2>
+                    <p id="popup-meta" class="meta"></p>
+                    <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+                    <div id="popup-description"></div>
+                </div>
+                
             </div>
         </div>
     </div>
 
     <div id="archive-overlay" class="overlay layer-middle">
-        <div class="overlay-content archive-content">
-            <button class="close-btn" onclick="closeArchive()">&times;</button>
+        <div class="popup-panel size-archive">
+            <button class="close-btn" onclick="closeArchive()"></button>
             <div class="filter-container">
                 <div id="tag-bar"></div>
             </div>
-
             <div class="database-wrapper">
                 <table id="artist-database">
                     <thead>
                         <tr>
-                            <th onclick="sortTable(0)">ID <span class="sort-icon">⇅</span></th>
-                            <th onclick="sortTable(1)">Title <span class="sort-icon">⇅</span></th>
-                            <th onclick="sortTable(2)">Year <span class="sort-icon">⇅</span></th>
-                            <th onclick="sortTable(3)">Place <span class="sort-icon">⇅</span></th>
-                            <th onclick="sortTable(4)">Institution <span class="sort-icon">⇅</span></th>
-                            <th onclick="sortTable(5)">Collaborators <span class="sort-icon">⇅</span></th>
+                            <th onclick="sortTable(0)">ID</th>
+                            <th onclick="sortTable(1)">Title</th>
+                            <th onclick="sortTable(2)">Year</th>
+                            <th onclick="sortTable(3)">Place</th>
+                            <th onclick="sortTable(4)">Institution</th>
+                            <th onclick="sortTable(5)">Collaborators</th>
                         </tr>
                     </thead>
                     <tbody id="database-body"></tbody>
@@ -46,12 +78,9 @@
         </div>
     </div>
 
-<div id="main-scene">
-    <div class="central-object" onclick="openArchive()">
-        <h1>anahit ghazaryan</h1>
+    <div id="main-scene">
+        <div id="dots-container"></div>
     </div>
-    <div id="dots-container"></div>
-</div>
 
     <script src="js/script.js"></script>
 </body>
