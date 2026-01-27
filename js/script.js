@@ -5,39 +5,54 @@ const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE
 const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv";
 
 let allProjectData = [];
+let cachedBioHTML = ""; // This is where we store the bio for instant access
+let bioLoaded = false;
+let projectsLoaded = false;
+
 const cursorElement = document.getElementById('custom-cursor');
 
-// START LOADING PULSE (Immediate)
+// START GLOBAL LOADING PULSE
 if (cursorElement) cursorElement.classList.add('cursor-loading');
 
-// FETCH DATABASE
+// A. FETCH DATABASE (Archive & Dots)
 Papa.parse(sheetURL, {
     download: true,
     header: true,
     complete: function(results) {
         allProjectData = results.data;
-        
-        // Initial Renders
         renderTable(allProjectData); 
         renderTags(allProjectData);  
         renderScene(allProjectData); 
+
+        init3D();
         
-        // Handle Hash Navigation
         const hash = window.location.hash;
         if (hash === '#archive') openArchive();
         else if (hash.length > 1) openProject(hash.substring(1));
 
-        // Start Physics Engine
         requestAnimationFrame(animateDots);
-        
-        // STOP LOADING PULSE
-        if (cursorElement) cursorElement.classList.remove('cursor-loading');
-    },
-    error: function(err) {
-        console.error("Error loading database:", err);
-        if (cursorElement) cursorElement.classList.remove('cursor-loading');
+        projectsLoaded = true;
+        checkAllReady();
     }
 });
+
+// B. PRE-FETCH BIO (This makes it instant later)
+Papa.parse(bioSheetURL, {
+    download: true,
+    header: true,
+    complete: function(results) {
+        cachedBioHTML = results.data[0]['content'] || results.data[0]['bio_text'];
+        bioLoaded = true;
+        checkAllReady();
+    }
+});
+
+// C. STOP PULSE ONLY WHEN EVERYTHING IS IN MEMORY
+function checkAllReady() {
+    if (projectsLoaded && bioLoaded) {
+        if (cursorElement) cursorElement.classList.remove('cursor-loading');
+    }
+}
 
 /* =========================================
    2. SCENE LOGIC (The Dots)
@@ -58,6 +73,29 @@ function renderScene(data) {
 
         const dot = document.createElement('div');
         dot.className = 'dot';
+
+        // ---------------------------------------------------------
+        // START MODIFICATION: BIND DATA FOR CLICKS & 3D HOVER
+        // ---------------------------------------------------------
+        
+        // 1. Attach Folder (Essential for your Click & Hover logic)
+        if (project.folder) {
+            dot.dataset.folder = project.folder; 
+            
+            // 2. Attach 3D File (If exists in Google Sheet)
+            if (project.glb_file && project.glb_file.trim() !== "") {
+                dot.dataset.glb = project.glb_file.trim();
+                dot.classList.add('has-3d'); // (Optional) Helper class
+            }
+
+            // 3. Attach Click Handler directly to the dot
+            dot.onclick = function() {
+                openProject(project.folder);
+            };
+        }
+        // ---------------------------------------------------------
+        // END MODIFICATION
+        // ---------------------------------------------------------
         
         // Random Position & Velocity
         let x = Math.random() * 80 + 10; 
@@ -123,6 +161,15 @@ function animateDots() {
     const localMouseY = isOverlayOpen ? -9999 : mouse.y;
 
     activeDots.forEach(dot => {
+        // --- 3D: FREEZE LOGIC ---
+        if (dot.element.classList.contains('is-active-3d')) {
+            // We skip the position math entirely for this frame
+            // But we still update the DOM position to be safe
+            dot.element.style.left = dot.x + '%';
+            dot.element.style.top = dot.y + '%';
+            return; 
+        }
+        // -------------------------
         // 1. Position Math
         const dotPixelX = (window.innerWidth * dot.x) / 100;
         const dotPixelY = (window.innerHeight * dot.y) / 100;
@@ -325,50 +372,72 @@ function sortTable(columnIndex) {
     }
 }
 
+
 /* =========================================
-   5. NAVIGATION
+   5. NAVIGATION (Simple & Reliable)
    ========================================= */
+
+// Single variable memory
+let wasArchiveOpenBefore = false;
+
+function closeAllOverlays() {
+    const overlays = ['archive-overlay', 'project-overlay', 'about-overlay'];
+    overlays.forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+    if (cursorElement) cursorElement.classList.remove('cursor-loading');
+}
+
+// --- ARCHIVE ---
 function openArchive() {
+    closeAllOverlays();
     document.getElementById('archive-overlay').style.display = 'flex';
     window.location.hash = 'archive';
 }
+
 function closeArchive() {
     document.getElementById('archive-overlay').style.display = 'none';
     history.pushState("", document.title, window.location.pathname);
 }
 
-// BIO / ABOUT
-let bioLoaded = false;
+// --- BIO / ABOUT ---
 function openAbout() {
+    // Memory for navigation
+    wasArchiveOpenBefore = (document.getElementById('archive-overlay').style.display === 'flex');
+    const projectOpen = (document.getElementById('project-overlay').style.display === 'flex');
+    const currentProjectHash = window.location.hash;
+
+    closeAllOverlays();
     const overlay = document.getElementById('about-overlay');
     const container = document.getElementById('bio-container');
     
-    overlay.style.display = 'flex';
+    // Set return attributes
+    if (projectOpen) overlay.setAttribute('data-return', currentProjectHash);
+    else if (wasArchiveOpenBefore) overlay.setAttribute('data-return', '#archive');
+    else overlay.removeAttribute('data-return');
 
-    if (!bioLoaded) {
-        cursorElement.classList.add('cursor-loading');
-        container.textContent = "Loading..."; 
-
-        Papa.parse(bioSheetURL, {
-            download: true,
-            header: true, 
-            complete: function(results) {
-                const text = results.data[0]['content'] || results.data[0]['bio_text'];
-                if (text) {
-                    container.innerHTML = text; 
-                    bioLoaded = true;
-                }
-                cursorElement.classList.remove('cursor-loading');
-            },
-            error: function(err) {
-                container.textContent = "Error loading biography.";
-                cursorElement.classList.remove('cursor-loading');
-            }
-        });
+    // INSTANT DISPLAY
+    if (bioLoaded) {
+        container.innerHTML = cachedBioHTML;
+    } else {
+        container.textContent = "Loading...";
     }
+
+    overlay.style.display = 'flex';
 }
 function closeAbout() {
-    document.getElementById('about-overlay').style.display = 'none';
+    const overlay = document.getElementById('about-overlay');
+    const returnPath = overlay.getAttribute('data-return');
+    
+    overlay.style.display = 'none';
+
+    if (returnPath === '#archive') {
+        openArchive();
+    } else if (returnPath && returnPath.startsWith('#')) {
+        openProject(returnPath.substring(1));
+    } else {
+        history.pushState("", document.title, window.location.pathname);
+    }
 }
 
 /* =========================================
@@ -378,11 +447,18 @@ let currentImages = [];
 let currentImgIndex = 0;
 
 function convertToDirectLink(url) {
-    if (url.includes("drive.google.com") && url.includes("/d/")) {
-        const parts = url.split('/d/');
-        if (parts.length > 1) {
-            const id = parts[1].split('/')[0];
-            return `https://drive.google.com/uc?export=view&id=${id}`;
+    if (url.includes("drive.google.com")) {
+        let id = "";
+        if (url.includes("/d/")) {
+            id = url.split('/d/')[1].split('/')[0];
+        } else if (url.includes("id=")) {
+            id = url.split('id=')[1].split('&')[0];
+        }
+        
+        if (id) {
+            // Using the thumbnail preview link is much more reliable
+            // =s2000 tells Google to provide a high-res version (up to 2000px)
+            return `https://lh3.googleusercontent.com/u/0/d/${id}=s2000`;
         }
     }
     return url; 
@@ -393,20 +469,28 @@ function openProject(folderName) {
     const project = allProjectData.find(p => p.folder === folderName);
     
     if (project) {
+        // Remember if we came from Archive
+        const fromArchive = (document.getElementById('archive-overlay').style.display === 'flex');
+        
+        closeAllOverlays();
+        const projectOverlay = document.getElementById('project-overlay');
+        
+        if (fromArchive) {
+            projectOverlay.setAttribute('data-from-archive', 'true');
+        } else {
+            projectOverlay.removeAttribute('data-from-archive');
+        }
+
         window.location.hash = folderName;
         document.getElementById('popup-title').textContent = project.project_name;
         document.getElementById('popup-meta').textContent = `${project.year} — ${project.medium}`;
-        document.getElementById('popup-description').textContent = project.description || "";
-        
+        const formattedDescription = (project.description || "").replace(/\n/g, '<br>');
+        document.getElementById('popup-description').innerHTML = formattedDescription;
+
         currentImages = [];
         currentImgIndex = 0;
-        
-        // Match column name 'image_id' from your sheet
         if (project.image_id) {
-            currentImages = project.image_id.split(',')
-                .map(url => url.trim())
-                .filter(url => url.length > 0)
-                .map(url => convertToDirectLink(url));
+            currentImages = project.image_id.split(',').map(url => url.trim()).filter(url => url.length > 0).map(url => convertToDirectLink(url));
         }
 
         const imgElement = document.getElementById('carousel-image');
@@ -416,39 +500,33 @@ function openProject(folderName) {
         if (currentImages.length > 0) {
             imgElement.style.display = 'block';
             navButtons.forEach(btn => btn.style.display = currentImages.length > 1 ? 'block' : 'none');
+            counter.style.display = (currentImages.length > 1) ? 'block' : 'none';
             loadImage(0);
         } else {
             imgElement.style.display = 'none';
             counter.textContent = "";
             navButtons.forEach(btn => btn.style.display = 'none');
         }
-
-        document.getElementById('project-overlay').style.display = "flex";
+        projectOverlay.style.display = "flex";
     }
 }
 
 function loadImage(index) {
     const imgElement = document.getElementById('carousel-image');
     const counter = document.getElementById('carousel-counter');
-
-    if (currentImages.length > 0) {
-        counter.textContent = `${index + 1} / ${currentImages.length}`;
-    }
+    if (currentImages.length > 0) counter.textContent = `${index + 1} / ${currentImages.length}`;
 
     cursorElement.classList.add('cursor-loading');
     imgElement.style.opacity = '0'; 
 
     const tempImg = new Image();
     tempImg.src = currentImages[index];
-
     tempImg.onload = function() {
         imgElement.src = currentImages[index];
         imgElement.style.opacity = '1';
         cursorElement.classList.remove('cursor-loading');
     };
-
     tempImg.onerror = function() {
-        console.error("Failed to load image:", currentImages[index]);
         cursorElement.classList.remove('cursor-loading');
     };
 }
@@ -466,65 +544,344 @@ function prevImage() {
 }
 
 function closeProject() {
-    document.getElementById('project-overlay').style.display = "none";
+    const projectOverlay = document.getElementById('project-overlay');
+    const fromArchive = projectOverlay.getAttribute('data-from-archive');
+    
+    projectOverlay.style.display = "none";
     cursorElement.classList.remove('cursor-loading');
     
-    const archiveIsVisible = document.getElementById('archive-overlay').style.display === 'flex';
-    if (archiveIsVisible) {
-        window.location.hash = 'archive';
+    if (fromArchive === 'true') {
+        openArchive();
     } else {
         history.pushState("", document.title, window.location.pathname);
     }
 }
 
-// UNIFIED WINDOW CLICK
-window.onclick = function(event) {
-    const projectOverlay = document.getElementById('project-overlay');
-    const archiveOverlay = document.getElementById('archive-overlay');
-    const aboutOverlay = document.getElementById('about-overlay');
+/* =========================================
+   7. UNIFIED CLICK HANDLERS
+   ========================================= */
 
-    if (event.target === projectOverlay) closeProject();
-    else if (event.target === archiveOverlay) closeArchive();
-    else if (event.target === aboutOverlay) closeAbout();
+window.onclick = function(event) {
+    if (event.target.id === 'project-overlay') closeProject();
+    if (event.target.id === 'archive-overlay') closeArchive();
+    if (event.target.id === 'about-overlay') closeAbout();
 }
 
+document.addEventListener('keydown', (e) => {
+    if (e.key === "Escape") {
+        const aboutOpen = document.getElementById('about-overlay').style.display === 'flex';
+        const projectOpen = document.getElementById('project-overlay').style.display === 'flex';
+        const archiveOpen = document.getElementById('archive-overlay').style.display === 'flex';
+
+        if (aboutOpen) closeAbout();
+        else if (projectOpen) closeProject();
+        else if (archiveOpen) closeArchive();
+    }
+});
+
 /* =========================================
-   7. CUSTOM CURSOR & CLICK FEEDBACK
+   8. CURSOR LOGIC
    ========================================= */
 document.addEventListener('mousemove', (e) => {
     cursorElement.style.left = e.clientX + 'px';
     cursorElement.style.top = e.clientY + 'px';
 
     const target = e.target;
-    const isClickable = target.closest(`
-        button, a, .dot, .project-row.has-folder, 
-        th, .tag-btn, .title, #archive-trigger, 
-        .carousel-nav
-    `);
+    const isClickable = target.closest(`button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #archive-trigger, .carousel-nav`);
 
-    if (isClickable) {
-        cursorElement.classList.add('hover-active');
-    } else {
-        cursorElement.classList.remove('hover-active');
-    }
+    if (isClickable) cursorElement.classList.add('hover-active');
+    else cursorElement.classList.remove('hover-active');
 });
 
-// NEW: Pulse Red when clicking empty space (Non-interactive)
 window.addEventListener('mousedown', (e) => {
-    // Check if what we clicked is "Interactive"
-    const isInteractive = e.target.closest(`
-        button, a, .dot, .project-row.has-folder, 
-        th, .tag-btn, .title, #archive-trigger, 
-        .carousel-nav, .popup-panel
-    `);
-
-    // If we clicked empty space (NOT interactive)
+    const isInteractive = e.target.closest(`button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #archive-trigger, .carousel-nav, .popup-panel`);
     if (!isInteractive) {
         cursorElement.classList.add('cursor-loading');
-        
-        // Remove pulse after 0.5s (simulating a 'thinking' blip)
-        setTimeout(() => {
-            cursorElement.classList.remove('cursor-loading');
-        }, 500);
+        setTimeout(() => cursorElement.classList.remove('cursor-loading'), 500);
     }
 });
+
+/* =========================================
+   9. DYNAMIC 3D HOVER (The "State Machine" Rewrite)
+   ========================================= */
+
+const ASSET_PATH = './assets/'; 
+const MODEL_SCALE = 0.5; 
+
+// --- 1. GLOBAL VARIABLES ---
+let scene, camera, renderer, loader;
+let currentModel = null; 
+let modelCache = {}; 
+
+// --- 2. STATE MACHINE ---
+// We track exactly what the model is doing to prevent glitches
+let appState = {
+    isHovering: false,
+    isDragging: false,
+    hasValidPosition: false, // <--- THE KEY FIX
+    activeDot: null,
+    targetScale: 0,
+    currentScale: 0,
+    mouse: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 }
+};
+
+// --- 3. INITIALIZATION ---
+function init3D() {
+    if (typeof THREE === 'undefined') return;
+
+    // A. Canvas
+    // Check if canvas exists, if not create it
+    let canvas = document.getElementById('three-canvas');
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'three-canvas';
+        document.body.appendChild(canvas);
+    }
+
+    // B. Renderer (Transparent)
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    // C. Scene
+    scene = new THREE.Scene();
+
+    // D. Camera (Isometric-ish)
+    const aspect = window.innerWidth / window.innerHeight;
+    const size = 10;
+    camera = new THREE.OrthographicCamera(
+        size * aspect / -2, size * aspect / 2,
+        size / 2, size / -2, 
+        0.1, 1000
+    );
+    // Position camera high and to the corner
+    camera.position.set(20, 20, 20);
+    camera.lookAt(0, 0, 0);
+
+    // E. Lighting (Soft Studio Setup)
+    const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+    scene.add(ambient);
+    
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    sun.position.set(5, 10, 7);
+    scene.add(sun);
+
+    // F. Loader
+    loader = new THREE.GLTFLoader();
+
+    // G. Start Loop
+    animate3D();
+    window.addEventListener('resize', onWindowResize, false);
+}
+
+// --- 4. THE RENDER LOOP ---
+function animate3D() {
+    requestAnimationFrame(animate3D);
+
+    // 1. SCALE MATH (Lerp)
+    if (appState.isDragging) appState.targetScale = MODEL_SCALE;
+    else if (!appState.isHovering) appState.targetScale = 0;
+    
+    appState.currentScale += (appState.targetScale - appState.currentScale) * 0.1;
+
+    // 2. PHYSICS (Friction)
+    appState.velocity.x *= 0.92; // Friction (lower = stickier)
+    appState.velocity.y *= 0.92;
+
+    if (currentModel) {
+        // Apply Spin
+        currentModel.rotation.y += appState.velocity.x;
+        currentModel.rotation.x += appState.velocity.y;
+
+        // Apply Scale
+        currentModel.scale.set(appState.currentScale, appState.currentScale, appState.currentScale);
+
+        // 3. POSITION SYNC
+        // We calculate position EVERY FRAME.
+        if (appState.activeDot) {
+            syncPositionToDot(appState.activeDot);
+        }
+
+        // 4. VISIBILITY GATE (The "Middle Pop" Fix)
+        // We only render if:
+        // A. We have a model
+        // B. It is big enough to see
+        // C. We have confirmed its position is valid (not 0,0,0)
+        if (appState.currentScale > 0.001 && appState.hasValidPosition) {
+            currentModel.visible = true; // Safe to show
+            renderer.render(scene, camera);
+        } else {
+            // Hide everything if conditions aren't met
+            renderer.clear();
+            if (currentModel) currentModel.visible = false;
+
+            // Cleanup if fully shrunk
+            if (appState.currentScale < 0.01 && appState.targetScale === 0) {
+                despawnModel();
+            }
+        }
+    }
+}
+
+// --- 5. LOGIC & MATH ---
+
+function syncPositionToDot(element) {
+    // 1. Get 2D DOM Position
+    const rect = element.getBoundingClientRect();
+    
+    // Safety: If element is off-screen or glitching, abort
+    if (rect.width === 0) return; 
+
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // 2. Convert to 3D World Coordinates
+    const x = (centerX / window.innerWidth) * 2 - 1;
+    const y = -(centerY / window.innerHeight) * 2 + 1;
+
+    const vec = new THREE.Vector3(x, y, 0.5);
+    vec.unproject(camera);
+    const dir = vec.sub(camera.position).normalize();
+    const distance = -camera.position.z / dir.z;
+    const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+    
+    // 3. Apply
+    pos.y += 0.5; // Offset upwards
+    if (currentModel) {
+        currentModel.position.copy(pos);
+        appState.hasValidPosition = true; // MARK AS SAFE TO RENDER
+    }
+}
+
+function loadAndSpawn(filename) {
+    // If we are already showing this exact model, just reopen it
+    if (currentModel && currentModel.userData.filename === filename) {
+        appState.targetScale = MODEL_SCALE;
+        return;
+    }
+
+    // Clean up existing
+    if (currentModel) scene.remove(currentModel);
+
+    // Helper to process the model once loaded
+    const onLoaded = (model) => {
+        // Setup Fresh Model
+        currentModel = model;
+        currentModel.userData.filename = filename; // Tag it
+        
+        // RESET PHYSICS
+        appState.currentScale = 0;
+        appState.velocity = { x: 0, y: 0 };
+        appState.hasValidPosition = false; // LOCK RENDERER
+        
+        currentModel.scale.set(0,0,0);
+        currentModel.visible = false; // HIDE INITIALLY
+        currentModel.rotation.set(0, Math.PI / 4, 0); // Front facing
+
+        scene.add(currentModel);
+
+        // Try to position immediately
+        if (appState.activeDot) syncPositionToDot(appState.activeDot);
+        
+        // Start Growing
+        appState.targetScale = MODEL_SCALE;
+    };
+
+    // Cache Check
+    if (modelCache[filename]) {
+        onLoaded(modelCache[filename].clone());
+    } else {
+        loader.load(ASSET_PATH + filename, (gltf) => {
+            const m = gltf.scene;
+            // Matte Material Fix
+            m.traverse(c => {
+                if (c.isMesh) {
+                    c.material.metalness = 0; 
+                    c.material.roughness = 0.5;
+                }
+            });
+            modelCache[filename] = m;
+            onLoaded(m.clone());
+        });
+    }
+}
+
+function despawnModel() {
+    if (currentModel) {
+        scene.remove(currentModel);
+        currentModel = null;
+    }
+    // Unfreeze DOM dot
+    if (appState.activeDot) {
+        appState.activeDot.classList.remove('is-active-3d');
+        appState.activeDot = null;
+    }
+    appState.hasValidPosition = false;
+}
+
+// --- 6. INTERACTIONS ---
+
+window.addEventListener('mousedown', (e) => {
+    if (appState.currentScale > 0.1) {
+        appState.isDragging = true;
+        appState.mouse = { x: e.clientX, y: e.clientY };
+        appState.velocity = { x: 0, y: 0 }; // Stop spin to catch
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    appState.isDragging = false;
+    if (!appState.isHovering) appState.targetScale = 0;
+});
+
+window.addEventListener('mousemove', (e) => {
+    // Drag Logic
+    if (appState.isDragging && currentModel) {
+        const deltaX = e.clientX - appState.mouse.x;
+        const deltaY = e.clientY - appState.mouse.y;
+        
+        // Add momentum
+        appState.velocity.x += deltaX * 0.005;
+        appState.velocity.y += deltaY * 0.005;
+
+        appState.mouse = { x: e.clientX, y: e.clientY };
+    }
+});
+
+// HOVER HANDLERS
+document.addEventListener('mouseover', (e) => {
+    // We filter for the dot class
+    if (e.target.classList.contains('dot')) {
+        const file = e.target.dataset.glb;
+        if (file) {
+            appState.isHovering = true;
+            
+            // Handle Dot Freezing
+            if (appState.activeDot) appState.activeDot.classList.remove('is-active-3d');
+            appState.activeDot = e.target;
+            appState.activeDot.classList.add('is-active-3d');
+
+            loadAndSpawn(file);
+        }
+    }
+});
+
+document.addEventListener('mouseout', (e) => {
+    if (e.target.classList.contains('dot')) {
+        appState.isHovering = false;
+    }
+});
+
+// RESIZE HANDLER
+function onWindowResize() {
+    if (!camera || !renderer) return;
+    const aspect = window.innerWidth / window.innerHeight;
+    const size = 10;
+    camera.left = -size * aspect / 2;
+    camera.right = size * aspect / 2;
+    camera.top = size / 2;
+    camera.bottom = -size / 2;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
