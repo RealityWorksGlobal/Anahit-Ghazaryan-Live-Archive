@@ -1,5 +1,5 @@
 /* =========================================
-   1. CONFIGURATION & INITIALIZATION
+ 1. CONFIGURATION & INITIALIZATION
    ========================================= */
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv";
 const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv";
@@ -602,286 +602,320 @@ window.addEventListener('mousedown', (e) => {
 });
 
 /* =========================================
-   9. DYNAMIC 3D HOVER (The "State Machine" Rewrite)
+   9. DYNAMIC 3D HOVER (Final: Fisheye Reflection)
    ========================================= */
 
-const ASSET_PATH = './assets/'; 
-const MODEL_SCALE = 0.5; 
+const ASSET_PATH = './assets/';
+const MODEL_SCALE = 0.5;
+const CLOSE_DELAY = 500;
 
-// --- 1. GLOBAL VARIABLES ---
-let scene, camera, renderer, loader;
-let currentModel = null; 
-let modelCache = {}; 
+// --- Variables ---
+let scene, camera, renderer, loader, raycaster;
+let globalEnvMap = null; 
+let currentWrapper = null;
+let currentModel = null;
+let modelCache = {};
+let closeTimer = null;
 
-// --- 2. STATE MACHINE ---
-// We track exactly what the model is doing to prevent glitches
-let appState = {
-    isHovering: false,
-    isDragging: false,
-    hasValidPosition: false, // <--- THE KEY FIX
-    activeDot: null,
-    targetScale: 0,
-    currentScale: 0,
-    mouse: { x: 0, y: 0 },
-    velocity: { x: 0, y: 0 }
-};
+// --- State Flags ---
+let targetScale = 0;
+let currentScale = 0;
+let activeDot = null;
+let isDragging = false;
+let isHovering = false;
+let previousMouse = { x: 0, y: 0 };
+let rotVelocity = { x: 0, y: 0 };
 
-// --- 3. INITIALIZATION ---
+// --- Math Tools ---
+const mathPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const planeIntersectPoint = new THREE.Vector3();
+
 function init3D() {
     if (typeof THREE === 'undefined') return;
 
-    // A. Canvas
-    // Check if canvas exists, if not create it
+    // 1. Setup Canvas
     let canvas = document.getElementById('three-canvas');
     if (!canvas) {
         canvas = document.createElement('canvas');
         canvas.id = 'three-canvas';
+        Object.assign(canvas.style, {
+            position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+            pointerEvents: 'none', zIndex: '999'
+        });
         document.body.appendChild(canvas);
     }
 
-    // B. Renderer (Transparent)
+    // 2. Scene & Renderer
+    scene = new THREE.Scene();
     renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    
-    // C. Scene
-    scene = new THREE.Scene();
 
-    // D. Camera (Isometric-ish)
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.9; 
+
+    // --- 3. HDRI LOADER (Standard Mapping) ---
+    new THREE.RGBELoader()
+        .setPath(ASSET_PATH)
+        .load('world.hdr', function (texture) {
+            texture.mapping = THREE.EquirectangularReflectionMapping; 
+            globalEnvMap = texture; 
+            scene.environment = texture;
+        });
+
+    // 4. Camera
     const aspect = window.innerWidth / window.innerHeight;
-    const size = 10;
+    const viewSize = 10;
     camera = new THREE.OrthographicCamera(
-        size * aspect / -2, size * aspect / 2,
-        size / 2, size / -2, 
+        viewSize * aspect / -2, viewSize * aspect / 2,
+        viewSize / 2, viewSize / -2,
         0.1, 1000
     );
-    // Position camera high and to the corner
     camera.position.set(20, 20, 20);
     camera.lookAt(0, 0, 0);
 
-    // E. Lighting (Soft Studio Setup)
-    const ambient = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambient);
-    
-    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-    sun.position.set(5, 10, 7);
-    scene.add(sun);
+    // 5. Lights (Fallback)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    scene.add(hemiLight);
 
-    // F. Loader
+    // 6. Tools
     loader = new THREE.GLTFLoader();
+    raycaster = new THREE.Raycaster();
 
-    // G. Start Loop
     animate3D();
     window.addEventListener('resize', onWindowResize, false);
 }
 
-// --- 4. THE RENDER LOOP ---
+// --- ROCKET SCIENCE FIX: WIDE ANGLE + TILT DOWN ---
+function applyFisheyeEffect(geometry) {
+    geometry.computeBoundingBox();
+    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+    
+    const positionAttribute = geometry.attributes.position;
+    const normalAttribute = geometry.attributes.normal;
+    
+    const p = new THREE.Vector3();
+    const n = new THREE.Vector3();
+    const sphereNormal = new THREE.Vector3();
+
+    // --- SETTINGS ---
+    const tiltY = -0.25; 
+    const curvature = 0.1;
+
+    for (let i = 0; i < positionAttribute.count; i++) {
+        p.fromBufferAttribute(positionAttribute, i);
+        n.fromBufferAttribute(normalAttribute, i);
+
+        // A. Calculate the "Wide Angle" Curve
+        sphereNormal.subVectors(p, center).normalize();
+
+        // B. Apply the Curve to the Normal
+        n.lerp(sphereNormal, curvature).normalize();
+
+        // C. Apply the Tilt ON TOP of the Curve
+        // We gently push the normal downwards
+        n.y += tiltY;
+        n.normalize();
+
+        normalAttribute.setXYZ(i, n.x, n.y, n.z);
+    }
+    
+    geometry.attributes.normal.needsUpdate = true;
+}
+
+// --- MAIN LOOP ---
 function animate3D() {
     requestAnimationFrame(animate3D);
 
-    // 1. SCALE MATH (Lerp)
-    if (appState.isDragging) appState.targetScale = MODEL_SCALE;
-    else if (!appState.isHovering) appState.targetScale = 0;
-    
-    appState.currentScale += (appState.targetScale - appState.currentScale) * 0.1;
+    const archiveOpen = document.getElementById('archive-overlay')?.style.display === 'flex';
+    const projectOpen = document.getElementById('project-overlay')?.style.display === 'flex';
+    const aboutOpen = document.getElementById('about-overlay')?.style.display === 'flex';
 
-    // 2. PHYSICS (Friction)
-    appState.velocity.x *= 0.92; // Friction (lower = stickier)
-    appState.velocity.y *= 0.92;
+    if (archiveOpen || projectOpen || aboutOpen) {
+        targetScale = 0;
+        currentScale = 0;
+        if (currentWrapper) currentWrapper.scale.set(0, 0, 0);
+        isHovering = false;
+        isDragging = false;
+        if (closeTimer) clearTimeout(closeTimer);
+    }
+    else if (isDragging || isHovering) {
+        targetScale = MODEL_SCALE;
+    } else {
+        targetScale = 0;
+    }
 
-    if (currentModel) {
-        // Apply Spin
-        currentModel.rotation.y += appState.velocity.x;
-        currentModel.rotation.x += appState.velocity.y;
+    currentScale += (targetScale - currentScale) * 0.03;
 
-        // Apply Scale
-        currentModel.scale.set(appState.currentScale, appState.currentScale, appState.currentScale);
+    if (currentWrapper && currentModel) {
+        rotVelocity.x *= 0.85;
+        rotVelocity.y *= 0.85;
 
-        // 3. POSITION SYNC
-        // We calculate position EVERY FRAME.
-        if (appState.activeDot) {
-            syncPositionToDot(appState.activeDot);
+        currentModel.rotation.y += rotVelocity.x;
+        currentModel.rotation.x += rotVelocity.y;
+
+        currentWrapper.scale.set(currentScale, currentScale, currentScale);
+
+        if (activeDot && currentScale > 0.001) {
+            updatePositionWithRaycaster(activeDot);
         }
 
-        // 4. VISIBILITY GATE (The "Middle Pop" Fix)
-        // We only render if:
-        // A. We have a model
-        // B. It is big enough to see
-        // C. We have confirmed its position is valid (not 0,0,0)
-        if (appState.currentScale > 0.001 && appState.hasValidPosition) {
-            currentModel.visible = true; // Safe to show
+        if (currentScale > 0.001) {
             renderer.render(scene, camera);
         } else {
-            // Hide everything if conditions aren't met
             renderer.clear();
-            if (currentModel) currentModel.visible = false;
-
-            // Cleanup if fully shrunk
-            if (appState.currentScale < 0.01 && appState.targetScale === 0) {
-                despawnModel();
+            if (currentScale < 0.01 && targetScale === 0) {
+                scene.remove(currentWrapper);
+                if (activeDot) {
+                    activeDot.classList.remove('is-active-3d');
+                    activeDot = null;
+                }
+                currentWrapper = null;
+                currentModel = null;
             }
         }
     }
 }
 
-// --- 5. LOGIC & MATH ---
+function updatePositionWithRaycaster(element) {
+    if (!camera || !element || !raycaster) return;
 
-function syncPositionToDot(element) {
-    // 1. Get 2D DOM Position
     const rect = element.getBoundingClientRect();
-    
-    // Safety: If element is off-screen or glitching, abort
-    if (rect.width === 0) return; 
+    if (rect.width === 0) return;
 
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    // 2. Convert to 3D World Coordinates
-    const x = (centerX / window.innerWidth) * 2 - 1;
-    const y = -(centerY / window.innerHeight) * 2 + 1;
+    const mouse = new THREE.Vector2();
+    mouse.x = (centerX / window.innerWidth) * 2 - 1;
+    mouse.y = -(centerY / window.innerHeight) * 2 + 1;
 
-    const vec = new THREE.Vector3(x, y, 0.5);
-    vec.unproject(camera);
-    const dir = vec.sub(camera.position).normalize();
-    const distance = -camera.position.z / dir.z;
-    const pos = camera.position.clone().add(dir.multiplyScalar(distance));
-    
-    // 3. Apply
-    pos.y += 0.5; // Offset upwards
-    if (currentModel) {
-        currentModel.position.copy(pos);
-        appState.hasValidPosition = true; // MARK AS SAFE TO RENDER
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.ray.intersectPlane(mathPlane, planeIntersectPoint);
+
+    if (currentWrapper) {
+        currentWrapper.position.copy(planeIntersectPoint);
     }
 }
 
-function loadAndSpawn(filename) {
-    // If we are already showing this exact model, just reopen it
-    if (currentModel && currentModel.userData.filename === filename) {
-        appState.targetScale = MODEL_SCALE;
+function loadModel(filename) {
+    if (modelCache[filename]) {
+        spawn(modelCache[filename].clone());
         return;
     }
+    loader.load(ASSET_PATH + filename, (gltf) => {
+        const m = gltf.scene;
 
-    // Clean up existing
-    if (currentModel) scene.remove(currentModel);
+        // --- 1. CENTER GEOMETRY ---
+        const box = new THREE.Box3().setFromObject(m);
+        const center = box.getCenter(new THREE.Vector3());
+        m.position.sub(center); 
 
-    // Helper to process the model once loaded
-    const onLoaded = (model) => {
-        // Setup Fresh Model
-        currentModel = model;
-        currentModel.userData.filename = filename; // Tag it
-        
-        // RESET PHYSICS
-        appState.currentScale = 0;
-        appState.velocity = { x: 0, y: 0 };
-        appState.hasValidPosition = false; // LOCK RENDERER
-        
-        currentModel.scale.set(0,0,0);
-        currentModel.visible = false; // HIDE INITIALLY
-        currentModel.rotation.set(0, Math.PI / 4, 0); // Front facing
-
-        scene.add(currentModel);
-
-        // Try to position immediately
-        if (appState.activeDot) syncPositionToDot(appState.activeDot);
-        
-        // Start Growing
-        appState.targetScale = MODEL_SCALE;
-    };
-
-    // Cache Check
-    if (modelCache[filename]) {
-        onLoaded(modelCache[filename].clone());
-    } else {
-        loader.load(ASSET_PATH + filename, (gltf) => {
-            const m = gltf.scene;
-            // Matte Material Fix
-            m.traverse(c => {
-                if (c.isMesh) {
-                    c.material.metalness = 0; 
-                    c.material.roughness = 0.5;
-                }
-            });
-            modelCache[filename] = m;
-            onLoaded(m.clone());
+        // --- 2. APPLY FISHEYE TO MESHES ---
+        m.traverse(c => {
+            if (c.isMesh) {
+                // Ensure geometry is unique so we don't warp the cached version repeatedly
+                c.geometry = c.geometry.clone();
+                
+                // This is the magic. It bends the light.
+                applyFisheyeEffect(c.geometry);
+            }
         });
-    }
+
+        modelCache[filename] = m;
+        const group = new THREE.Group();
+        group.add(m.clone());
+        
+        spawn(group); 
+    });
 }
 
-function despawnModel() {
-    if (currentModel) {
-        scene.remove(currentModel);
-        currentModel = null;
-    }
-    // Unfreeze DOM dot
-    if (appState.activeDot) {
-        appState.activeDot.classList.remove('is-active-3d');
-        appState.activeDot = null;
-    }
-    appState.hasValidPosition = false;
+function spawn(model) {
+    if (currentWrapper) scene.remove(currentWrapper);
+
+    currentWrapper = new THREE.Group();
+    scene.add(currentWrapper);
+
+    currentModel = model;
+
+    currentModel.rotation.set(0, Math.PI / 2, 0);
+
+    currentWrapper.add(currentModel);
+    currentWrapper.lookAt(camera.position);
+
+    currentScale = 0;
+    currentWrapper.scale.set(0, 0, 0);
+    rotVelocity = { x: 0, y: 0 };
+
+    updatePositionWithRaycaster(activeDot);
+    targetScale = MODEL_SCALE;
 }
 
-// --- 6. INTERACTIONS ---
-
+// --- INTERACTIONS (Kept original) ---
 window.addEventListener('mousedown', (e) => {
-    if (appState.currentScale > 0.1) {
-        appState.isDragging = true;
-        appState.mouse = { x: e.clientX, y: e.clientY };
-        appState.velocity = { x: 0, y: 0 }; // Stop spin to catch
+    if (currentScale > 0.1) {
+        isDragging = true;
+        previousMouse = { x: e.clientX, y: e.clientY };
+        rotVelocity = { x: 0, y: 0 };
     }
 });
 
 window.addEventListener('mouseup', () => {
-    appState.isDragging = false;
-    if (!appState.isHovering) appState.targetScale = 0;
+    isDragging = false;
 });
 
 window.addEventListener('mousemove', (e) => {
-    // Drag Logic
-    if (appState.isDragging && currentModel) {
-        const deltaX = e.clientX - appState.mouse.x;
-        const deltaY = e.clientY - appState.mouse.y;
-        
-        // Add momentum
-        appState.velocity.x += deltaX * 0.005;
-        appState.velocity.y += deltaY * 0.005;
-
-        appState.mouse = { x: e.clientX, y: e.clientY };
+    if ((isHovering || isDragging) && currentModel) {
+        const deltaX = e.clientX - previousMouse.x;
+        const deltaY = e.clientY - previousMouse.y;
+        rotVelocity.x += deltaX * 0.003;
+        rotVelocity.y += deltaY * 0.003;
     }
+    previousMouse = { x: e.clientX, y: e.clientY };
 });
 
-// HOVER HANDLERS
 document.addEventListener('mouseover', (e) => {
-    // We filter for the dot class
     if (e.target.classList.contains('dot')) {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        previousMouse = { x: e.clientX, y: e.clientY };
+
+        if (isDragging) return;
+        if (activeDot === e.target) {
+            isHovering = true;
+            return;
+        }
+
         const file = e.target.dataset.glb;
         if (file) {
-            appState.isHovering = true;
-            
-            // Handle Dot Freezing
-            if (appState.activeDot) appState.activeDot.classList.remove('is-active-3d');
-            appState.activeDot = e.target;
-            appState.activeDot.classList.add('is-active-3d');
-
-            loadAndSpawn(file);
+            isHovering = true;
+            if (activeDot) activeDot.classList.remove('is-active-3d');
+            activeDot = e.target;
+            activeDot.classList.add('is-active-3d');
+            loadModel(file);
         }
     }
 });
 
 document.addEventListener('mouseout', (e) => {
     if (e.target.classList.contains('dot')) {
-        appState.isHovering = false;
+        closeTimer = setTimeout(() => {
+            isHovering = false;
+        }, CLOSE_DELAY);
     }
 });
 
-// RESIZE HANDLER
 function onWindowResize() {
     if (!camera || !renderer) return;
     const aspect = window.innerWidth / window.innerHeight;
-    const size = 10;
-    camera.left = -size * aspect / 2;
-    camera.right = size * aspect / 2;
-    camera.top = size / 2;
-    camera.bottom = -size / 2;
+    const viewSize = 10;
+    camera.left = -viewSize * aspect / 2;
+    camera.right = viewSize * aspect / 2;
+    camera.top = viewSize / 2;
+    camera.bottom = -viewSize / 2;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
