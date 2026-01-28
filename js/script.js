@@ -33,6 +33,61 @@ Papa.parse(sheetURL, {
         requestAnimationFrame(animateDots);
         projectsLoaded = true;
         checkAllReady();
+
+        /* --- START OF NEW PRELOADER LOGIC --- */
+        
+        // 1. Setup the Manager to track background loading
+        const manager = new THREE.LoadingManager();
+
+        manager.onLoad = function () {
+            // Only fade out the loader once everything is cached
+            const loaderDiv = document.getElementById('loader');
+            if(loaderDiv) {
+                loaderDiv.style.opacity = '0';
+                setTimeout(() => loaderDiv.remove(), 500);
+            }
+        };
+
+        // 2. Attach the 3D loader to the manager
+        loader = new THREE.GLTFLoader(manager); 
+
+        // 3. Preload Images directly from allProjectData
+        function preloadDatabaseImages() {
+            let totalToLoad = 0;
+
+            allProjectData.forEach(project => {
+                if (project.image_id) {
+                    // Split the comma-separated string from your sheet
+                    const urls = project.image_id.split(',').map(url => url.trim());
+                    
+                    urls.forEach(url => {
+                        if (url.length > 0) {
+                            const directLink = convertToDirectLink(url);
+                            totalToLoad++;
+
+                            // Create a memory-only image to force a background download
+                            const cacheImg = new Image();
+                            
+                            // Tell the manager to track this specific file
+                            manager.itemStart(directLink);
+                            
+                            cacheImg.onload = () => manager.itemEnd(directLink);
+                            cacheImg.onerror = () => manager.itemEnd(directLink); // Don't hang on broken links
+                            
+                            cacheImg.src = directLink;
+                        }
+                    });
+                }
+            });
+
+            // If there were zero images found in the sheet, trigger onLoad manually
+            if (totalToLoad === 0) manager.onLoad();
+        }
+
+        // Execute the preload
+        preloadDatabaseImages();
+        
+        /* --- END OF NEW PRELOADER LOGIC --- */
     }
 });
 
@@ -89,9 +144,10 @@ function renderScene(data) {
             }
 
             // 3. Attach Click Handler directly to the dot
-            dot.onclick = function() {
+            dot.onclick = function(e) {
+                if (e.pointerType === 'touch') return; 
                 openProject(project.folder);
-            };
+};
         }
         // ---------------------------------------------------------
         // END MODIFICATION
@@ -465,6 +521,14 @@ function convertToDirectLink(url) {
 }
 
 function openProject(folderName) {
+    isDragging = false;
+    isHovering = false;
+    interactionType = null;
+    didTouchHitDot = false;
+    
+    if (cursorElement) cursorElement.classList.remove('hover-active', 'cursor-loading');
+
+
     if (!folderName) return;
     const project = allProjectData.find(p => p.folder === folderName);
     
@@ -921,131 +985,151 @@ function onWindowResize() {
 }
 
 /* =========================================
-   10. SMART TOUCH (Tap=Stay, Hold=Close)
+   10. TOUCH LOGIC (Final: Tap vs Drag)
    ========================================= */
 
 let touchStartTime = 0;
-let isInteractingWithOpenModel = false;
+let interactionType = null; // 'new-dot', 'existing-model', or 'empty'
 let didTouchHitDot = false;
+let hasMoved = false;
 
-// Helper: Find closest dot within radius
+// Helper: Find closest dot
 function getClosestDot(x, y) {
     let closest = null;
     let minDist = Infinity;
-    
     activeDots.forEach(dot => {
         const rect = dot.element.getBoundingClientRect();
-        const dotX = rect.left + rect.width / 2;
-        const dotY = rect.top + rect.height / 2;
-        const dist = Math.hypot(x - dotX, y - dotY);
-        
-        if (dist < minDist) {
-            minDist = dist;
-            closest = dot;
-        }
+        const dist = Math.hypot(x - (rect.left + rect.width/2), y - (rect.top + rect.height/2));
+        if (dist < minDist) { minDist = dist; closest = dot; }
     });
-
-    // 60px Radius for comfortable hitting
     return minDist < 60 ? closest : null; 
 }
 
-// --- TOUCH START ---
+// Helper: Create pulse
+// A. The Pulse Function (Self-Cleaning)
+function triggerPulse(x, y) {
+    const pulse = document.createElement('div');
+    pulse.className = 'touch-pulse';
+    pulse.style.left = x + 'px';
+    pulse.style.top = y + 'px';
+    document.body.appendChild(pulse);
+
+    // Completely autonomous cleanup
+    pulse.addEventListener('animationend', () => pulse.remove());
+    setTimeout(() => { if(pulse.parentNode) pulse.remove(); }, 600);
+}
+
+// B. The Listener Update
 window.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
-    touchStartTime = Date.now();
-    didTouchHitDot = false;
     
-    // 1. Check if we hit a dot (or the open model)
+    // 1. Fire pulse immediately on every single touch
+    triggerPulse(t.clientX, t.clientY);
+
+    hasMoved = false;
     const target = getClosestDot(t.clientX, t.clientY);
 
-    // CASE A: We hit a dot (either new or existing)
+    // 2. The logic for 3D models
     if (target && target.element.dataset.glb) {
         didTouchHitDot = true;
+        e.preventDefault(); 
         
-        // Is this the ALREADY open dot?
         if (activeDot === target.element && isHovering) {
-            // Yes. We are grabbing the open model to move it.
-            isInteractingWithOpenModel = true;
+            interactionType = 'existing-model';
         } else {
-            // No. It's a NEW dot. Open it immediately.
-            isInteractingWithOpenModel = false; // Reset this flag
-            
-            // Clean up old
+            interactionType = 'new-dot';
             if (activeDot) activeDot.classList.remove('is-active-3d');
-            
             activeDot = target.element;
             activeDot.classList.add('is-active-3d');
-            isHovering = true; // Show model
+            isHovering = true;
             loadModel(target.element.dataset.glb);
         }
-
-        // Initialize drag physics
         isDragging = true;
         previousMouse = { x: t.clientX, y: t.clientY };
         rotVelocity = { x: 0, y: 0 };
-    } 
-    // CASE B: We touched empty space
-    else {
-        // Prepare to close everything on release (or immediately if you prefer)
-        // We do nothing here, let TouchEnd handle the cleanup
+    } else {
+        interactionType = 'empty';
     }
 }, { passive: false });
 
 
-// --- TOUCH MOVE (Rotate) ---
+// --- TOUCH MOVE ---
 window.addEventListener('touchmove', (e) => {
-    // Only rotate if we are actively dragging a model
-    if (isDragging && currentModel && isHovering) {
-        e.preventDefault(); // Block scrolling
+    if (isDragging) {
+        const dx = e.touches[0].clientX - previousMouse.x;
+        const dy = e.touches[0].clientY - previousMouse.y;
         
-        const deltaX = e.touches[0].clientX - previousMouse.x;
-        const deltaY = e.touches[0].clientY - previousMouse.y;
-        
-        rotVelocity.x += deltaX * 0.003;
-        rotVelocity.y += deltaY * 0.003;
-        
-        previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        // If moved more than 7 pixels, it's a drag, not a tap
+        if (Math.hypot(dx, dy) > 7) {
+            hasMoved = true;
+        }
+
+        if (currentModel && isHovering) {
+            e.preventDefault(); 
+            rotVelocity.x += dx * 0.003;
+            rotVelocity.y += dy * 0.003;
+            previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
     }
 }, { passive: false });
 
 
-// --- TOUCH END (The Logic Brain) ---
-window.addEventListener('touchend', () => {
-    const touchDuration = Date.now() - touchStartTime;
-    const isTap = touchDuration < 250; // Short press (< 250ms)
-
+// --- TOUCH END ---
+window.addEventListener('touchend', (e) => {
+    // We only preventDefault if we actually hit a dot area to avoid breaking 
+    // standard UI buttons like "About" or "Archive"
     if (didTouchHitDot) {
-        if (isInteractingWithOpenModel) {
-            // USER RULE: "if you touch it after opening... on release, it vanishes"
+        e.preventDefault(); 
+    }
+
+    const t = e.changedTouches[0]; 
+
+    // CASE 1: Tap on the model that was already open
+    if (interactionType === 'existing-model') {
+        if (!hasMoved) {
+            // TAP -> Open Project
+            triggerPulse(t.clientX, t.clientY);
+            if (activeDot && activeDot.dataset.folder) {
+                openProject(activeDot.dataset.folder);
+                // Close 3D after opening project
+                isHovering = false;
+                if (activeDot) activeDot.classList.remove('is-active-3d');
+            }
+        } 
+        // If hasMoved is true here, they were just rotating. Keep it open.
+    } 
+    
+    // CASE 2: Interaction with a new dot
+    else if (interactionType === 'new-dot') {
+        if (hasMoved) {
+            // DRAG RELEASE -> They peeked and dragged, so CLOSE it.
             isHovering = false;
             if (activeDot) {
                 activeDot.classList.remove('is-active-3d');
                 activeDot = null;
             }
         } else {
-            // It was a NEW dot.
-            if (isTap) {
-                // USER RULE: "if you only have a touch on a dot, the 3d model appears" (Persistent)
-                isHovering = true; 
-            } else {
-                // USER RULE: "if you hold on the button, model disappears on release"
-                isHovering = false;
-                if (activeDot) {
-                    activeDot.classList.remove('is-active-3d');
-                    activeDot = null;
-                }
-            }
+            // TAP -> Opened it for the first time. Keep it open.
+            triggerPulse(t.clientX, t.clientY);
+            isHovering = true;
         }
-    } else {
-        // USER RULE: "to get it go away tap anywhere else"
-        isHovering = false;
-        if (activeDot) {
-            activeDot.classList.remove('is-active-3d');
-            activeDot = null;
+    } 
+
+    // CASE 3: Tapped or dragged on empty space
+    else if (interactionType === 'empty') {
+        if (!hasMoved) {
+            // TAP ELSEWHERE -> Close everything
+            isHovering = false;
+            if (activeDot) {
+                activeDot.classList.remove('is-active-3d');
+                activeDot = null;
+            }
         }
     }
 
-    // Reset flags
+    // Reset all flags for the next touch
     isDragging = false;
-    isInteractingWithOpenModel = false;
-});
+    interactionType = null;
+    didTouchHitDot = false;
+    hasMoved = false; 
+}, { passive: false });
