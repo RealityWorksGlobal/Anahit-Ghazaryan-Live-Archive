@@ -919,3 +919,133 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
+/* =========================================
+   10. SMART TOUCH (Tap=Stay, Hold=Close)
+   ========================================= */
+
+let touchStartTime = 0;
+let isInteractingWithOpenModel = false;
+let didTouchHitDot = false;
+
+// Helper: Find closest dot within radius
+function getClosestDot(x, y) {
+    let closest = null;
+    let minDist = Infinity;
+    
+    activeDots.forEach(dot => {
+        const rect = dot.element.getBoundingClientRect();
+        const dotX = rect.left + rect.width / 2;
+        const dotY = rect.top + rect.height / 2;
+        const dist = Math.hypot(x - dotX, y - dotY);
+        
+        if (dist < minDist) {
+            minDist = dist;
+            closest = dot;
+        }
+    });
+
+    // 60px Radius for comfortable hitting
+    return minDist < 60 ? closest : null; 
+}
+
+// --- TOUCH START ---
+window.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    touchStartTime = Date.now();
+    didTouchHitDot = false;
+    
+    // 1. Check if we hit a dot (or the open model)
+    const target = getClosestDot(t.clientX, t.clientY);
+
+    // CASE A: We hit a dot (either new or existing)
+    if (target && target.element.dataset.glb) {
+        didTouchHitDot = true;
+        
+        // Is this the ALREADY open dot?
+        if (activeDot === target.element && isHovering) {
+            // Yes. We are grabbing the open model to move it.
+            isInteractingWithOpenModel = true;
+        } else {
+            // No. It's a NEW dot. Open it immediately.
+            isInteractingWithOpenModel = false; // Reset this flag
+            
+            // Clean up old
+            if (activeDot) activeDot.classList.remove('is-active-3d');
+            
+            activeDot = target.element;
+            activeDot.classList.add('is-active-3d');
+            isHovering = true; // Show model
+            loadModel(target.element.dataset.glb);
+        }
+
+        // Initialize drag physics
+        isDragging = true;
+        previousMouse = { x: t.clientX, y: t.clientY };
+        rotVelocity = { x: 0, y: 0 };
+    } 
+    // CASE B: We touched empty space
+    else {
+        // Prepare to close everything on release (or immediately if you prefer)
+        // We do nothing here, let TouchEnd handle the cleanup
+    }
+}, { passive: false });
+
+
+// --- TOUCH MOVE (Rotate) ---
+window.addEventListener('touchmove', (e) => {
+    // Only rotate if we are actively dragging a model
+    if (isDragging && currentModel && isHovering) {
+        e.preventDefault(); // Block scrolling
+        
+        const deltaX = e.touches[0].clientX - previousMouse.x;
+        const deltaY = e.touches[0].clientY - previousMouse.y;
+        
+        rotVelocity.x += deltaX * 0.003;
+        rotVelocity.y += deltaY * 0.003;
+        
+        previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+}, { passive: false });
+
+
+// --- TOUCH END (The Logic Brain) ---
+window.addEventListener('touchend', () => {
+    const touchDuration = Date.now() - touchStartTime;
+    const isTap = touchDuration < 250; // Short press (< 250ms)
+
+    if (didTouchHitDot) {
+        if (isInteractingWithOpenModel) {
+            // USER RULE: "if you touch it after opening... on release, it vanishes"
+            isHovering = false;
+            if (activeDot) {
+                activeDot.classList.remove('is-active-3d');
+                activeDot = null;
+            }
+        } else {
+            // It was a NEW dot.
+            if (isTap) {
+                // USER RULE: "if you only have a touch on a dot, the 3d model appears" (Persistent)
+                isHovering = true; 
+            } else {
+                // USER RULE: "if you hold on the button, model disappears on release"
+                isHovering = false;
+                if (activeDot) {
+                    activeDot.classList.remove('is-active-3d');
+                    activeDot = null;
+                }
+            }
+        }
+    } else {
+        // USER RULE: "to get it go away tap anywhere else"
+        isHovering = false;
+        if (activeDot) {
+            activeDot.classList.remove('is-active-3d');
+            activeDot = null;
+        }
+    }
+
+    // Reset flags
+    isDragging = false;
+    isInteractingWithOpenModel = false;
+});
