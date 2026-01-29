@@ -56,9 +56,8 @@ Papa.parse(sheetURL, {
             let totalToLoad = 0;
 
             allProjectData.forEach(project => {
-                if (project.image_id) {
-                    // Split the comma-separated string from your sheet
-                    const urls = project.image_id.split(',').map(url => url.trim());
+                if (project.title_image) {
+                    const urls = project.title_image.split(',').map(url => url.trim());
                     
                     urls.forEach(url => {
                         if (url.length > 0) {
@@ -136,11 +135,12 @@ function renderScene(data) {
         // 1. Attach Folder (Essential for your Click & Hover logic)
         if (project.folder) {
             dot.dataset.folder = project.folder; 
-            
             // 2. Attach 3D File (If exists in Google Sheet)
-            if (project.glb_file && project.glb_file.trim() !== "") {
-                dot.dataset.glb = project.glb_file.trim();
-                dot.classList.add('has-3d'); // (Optional) Helper class
+            const glbFile = project.model_glb; 
+
+            if (glbFile && glbFile.trim() !== "") {
+                dot.dataset.glb = glbFile.trim();
+                dot.classList.add('has-3d');
             }
 
             // 3. Attach Click Handler directly to the dot
@@ -533,9 +533,7 @@ function openProject(folderName) {
     const project = allProjectData.find(p => p.folder === folderName);
     
     if (project) {
-        // Remember if we came from Archive
         const fromArchive = (document.getElementById('archive-overlay').style.display === 'flex');
-        
         closeAllOverlays();
         const projectOverlay = document.getElementById('project-overlay');
         
@@ -553,8 +551,8 @@ function openProject(folderName) {
 
         currentImages = [];
         currentImgIndex = 0;
-        if (project.image_id) {
-            currentImages = project.image_id.split(',').map(url => url.trim()).filter(url => url.length > 0).map(url => convertToDirectLink(url));
+        if (project.title_image) {
+            currentImages = project.title_image.split(',').map(url => url.trim()).filter(url => url.length > 0).map(url => convertToDirectLink(url));
         }
 
         const imgElement = document.getElementById('carousel-image');
