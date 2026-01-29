@@ -23,7 +23,7 @@
     <header>
         <h1 class="title" onclick="openAbout()">anahit ghazaryan</h1>
     </header>
-
+    
     <div id="about-overlay" class="overlay layer-about">
         <div class="popup-panel size-about">
             <button class="close-btn" onclick="closeAbout()"></button>
@@ -33,28 +33,32 @@
 
     <div id="project-overlay" class="overlay layer-top">
         <div class="popup-panel size-project">
-            <button class="close-btn" onclick="closeProject()"></button>
+            <button class="close-btn fixed-close" onclick="closeProject()"></button>
             
-            <div class="project-split-layout">
-                
-                <div class="project-visuals">
-                    <div id="carousel-container">
-                        <img id="carousel-image" src="" alt="">
-                        
-                        <button class="carousel-nav prev" onclick="prevImage()">&#8249;</button>
-                        <button class="carousel-nav next" onclick="nextImage()">&#8250;</button>
-                        
-                        <div id="carousel-counter"></div>
-                    </div>
-                </div>
+            <div id="project-scroll-container">
 
-                <div class="project-info scroll-content">
-                    <h2 id="popup-title"></h2>
-                    <p id="popup-meta" class="meta"></p>
-                    <hr class="project-divider">
-                    <div id="popup-description"></div>
-                </div>
-                
+                <section class="project-section" id="section-top">
+                    <div class="project-split-layout">
+                        
+                        <div class="project-visuals">
+                            <div id="poster-container">
+                                <img id="poster-image" src="" alt="Project Image">
+                            </div>
+                        </div>
+
+                        <div class="project-info scroll-content">
+                            <h2 id="popup-title"></h2>
+                            <p id="popup-meta" class="meta"></p>
+                            <hr class="project-divider">
+                            <div id="popup-description"></div>
+                        </div>
+                        
+                    </div>
+                    <div class="scroll-indicator">↓</div>
+                </section>
+
+                <section class="project-section" id="section-bottom"></section>
+
             </div>
         </div>
     </div>

@@ -521,101 +521,167 @@ function convertToDirectLink(url) {
 }
 
 function openProject(folderName) {
+    // --- 1. Reset Interaction States ---
     isDragging = false;
     isHovering = false;
     interactionType = null;
     didTouchHitDot = false;
-    
-    if (cursorElement) cursorElement.classList.remove('hover-active', 'cursor-loading');
-
+    if (typeof cursorElement !== 'undefined' && cursorElement) {
+        cursorElement.classList.remove('hover-active', 'cursor-loading');
+    }
 
     if (!folderName) return;
     const project = allProjectData.find(p => p.folder === folderName);
     
     if (project) {
-        const fromArchive = (document.getElementById('archive-overlay').style.display === 'flex');
+        // --- CRITICAL FIX: Check Archive state BEFORE closing overlays ---
+        const archiveOverlay = document.getElementById('archive-overlay');
+        const isArchiveOpen = (archiveOverlay && archiveOverlay.style.display === 'flex');
+
+        // Now close everything
         closeAllOverlays();
-        const projectOverlay = document.getElementById('project-overlay');
         
-        if (fromArchive) {
+        const projectOverlay = document.getElementById('project-overlay');
+        const scrollContainer = document.getElementById('project-scroll-container');
+        
+        // Reset scroll to top
+        if (scrollContainer) scrollContainer.scrollTop = 0;
+
+        // Save the state: Did we come from the Archive?
+        if (isArchiveOpen) {
             projectOverlay.setAttribute('data-from-archive', 'true');
         } else {
             projectOverlay.removeAttribute('data-from-archive');
         }
 
         window.location.hash = folderName;
-        document.getElementById('popup-title').textContent = project.project_name;
-        document.getElementById('popup-meta').textContent = `${project.year} — ${project.medium}`;
-        const formattedDescription = (project.description || "").replace(/\n/g, '<br>');
-        document.getElementById('popup-description').innerHTML = formattedDescription;
+        
+        // --- 3. TOP SECTION: Text ---
+        const titleEl = document.getElementById('popup-title');
+        const metaEl = document.getElementById('popup-meta');
+        const descEl = document.getElementById('popup-description');
 
-        currentImages = [];
-        currentImgIndex = 0;
-        if (project.title_image) {
-            currentImages = project.title_image.split(',').map(url => url.trim()).filter(url => url.length > 0).map(url => convertToDirectLink(url));
+        if (titleEl) titleEl.textContent = project.project_name;
+        if (metaEl) metaEl.textContent = `${project.year} — ${project.medium}`;
+        if (descEl) descEl.innerHTML = (project.description || "").replace(/\n/g, '<br>');
+
+        // --- 4. TOP SECTION: Image & Link ---
+        const imgElement = document.getElementById('poster-image');
+        const visualContainer = document.querySelector('.project-visuals');
+
+        // Reset Logic
+        projectOverlay.classList.remove('no-image');
+        if (visualContainer) visualContainer.classList.remove('has-link');
+        
+        if (imgElement) {
+            imgElement.onclick = null;
+            imgElement.style.display = 'none'; 
         }
 
-        const imgElement = document.getElementById('carousel-image');
-        const counter = document.getElementById('carousel-counter');
-        const navButtons = document.querySelectorAll('.carousel-nav');
+        let currentImages = [];
+        
+        // ROBUST GETTER: Finds the column even if it has spaces or capitals
+        // 1. Get all keys (column names)
+        const keys = Object.keys(project);
+        // 2. Find the one that looks like 'title_image'
+        const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
+        // 3. Get the value
+        const rawImageString = imageKey ? project[imageKey] : null;
 
-        if (currentImages.length > 0) {
+        if (rawImageString) {
+            currentImages = rawImageString.split(',')
+                .map(u => u.trim())
+                .filter(u => u.length > 0)
+                .map(u => convertToDirectLink(u));
+        }
+        if (currentImages.length > 0 && imgElement) {
             imgElement.style.display = 'block';
-            navButtons.forEach(btn => btn.style.display = currentImages.length > 1 ? 'block' : 'none');
-            counter.style.display = (currentImages.length > 1) ? 'block' : 'none';
-            loadImage(0);
+            imgElement.src = currentImages[0];
+
+            if (project.title_link && project.title_link.trim() !== "") {
+                const linkUrl = project.title_link.trim();
+                if (visualContainer) visualContainer.classList.add('has-link');
+                imgElement.onclick = () => window.open(linkUrl, '_blank');
+            }
         } else {
-            imgElement.style.display = 'none';
-            counter.textContent = "";
-            navButtons.forEach(btn => btn.style.display = 'none');
+            projectOverlay.classList.add('no-image');
         }
+
+        // --- 5. BOTTOM SECTION (With YouTube Fix) ---
+        const bottomSection = document.getElementById('section-bottom');
+        if (bottomSection) {
+            bottomSection.innerHTML = '';    
+            bottomSection.style.display = 'none'; 
+
+            const has = (str) => str && str.trim() !== "";
+            
+            // Robust ID Extractor
+            const getYouTubeID = (url) => {
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) ? match[2] : null;
+            };
+
+            // CHECK 1: Video
+            if (has(project.video)) {
+                const videoID = getYouTubeID(project.video.trim());
+                if (videoID) {
+                    bottomSection.style.display = 'flex';
+                    const embedUrl = `https://www.youtube.com/embed/${videoID}?rel=0`;
+                    bottomSection.innerHTML = `<div class="video-container"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>`;
+                }
+            } 
+            // CHECK 2: Website Image
+            else if (has(project.website_image)) {
+                bottomSection.style.display = 'flex';
+                const img = document.createElement('img');
+                img.src = convertToDirectLink(project.website_image.trim());
+                img.className = 'bottom-website-image';
+                if (has(project.website_link)) {
+                    img.classList.add('is-linkable');
+                    img.onclick = () => window.open(project.website_link.trim(), '_blank');
+                }
+                bottomSection.appendChild(img);
+            }
+            // CHECK 3: Carousel
+            else if (has(project.carousel)) {
+                bottomSection.style.display = 'flex';
+                const cImg = document.createElement('img');
+                const cLinks = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
+                cImg.src = cLinks[0];
+                cImg.className = 'bottom-website-image';
+                bottomSection.appendChild(cImg);
+            }
+        }
+
         projectOverlay.style.display = "flex";
     }
 }
 
-function loadImage(index) {
-    const imgElement = document.getElementById('carousel-image');
-    const counter = document.getElementById('carousel-counter');
-    if (currentImages.length > 0) counter.textContent = `${index + 1} / ${currentImages.length}`;
-
-    cursorElement.classList.add('cursor-loading');
-    imgElement.style.opacity = '0'; 
-
-    const tempImg = new Image();
-    tempImg.src = currentImages[index];
-    tempImg.onload = function() {
-        imgElement.src = currentImages[index];
-        imgElement.style.opacity = '1';
-        cursorElement.classList.remove('cursor-loading');
-    };
-    tempImg.onerror = function() {
-        cursorElement.classList.remove('cursor-loading');
-    };
-}
-
-function nextImage() {
-    if (currentImages.length <= 1) return;
-    currentImgIndex = (currentImgIndex + 1) % currentImages.length;
-    loadImage(currentImgIndex);
-}
-
-function prevImage() {
-    if (currentImages.length <= 1) return;
-    currentImgIndex = (currentImgIndex - 1 + currentImages.length) % currentImages.length;
-    loadImage(currentImgIndex);
-}
-
 function closeProject() {
     const projectOverlay = document.getElementById('project-overlay');
-    const fromArchive = projectOverlay.getAttribute('data-from-archive');
     
+    // Check if we came from the Archive
+    const wasInArchive = projectOverlay.getAttribute('data-from-archive') === 'true';
+
+    // Hide Project
     projectOverlay.style.display = "none";
-    cursorElement.classList.remove('cursor-loading');
     
-    if (fromArchive === 'true') {
-        openArchive();
-    } else {
-        history.pushState("", document.title, window.location.pathname);
+    // Stop any videos playing (Important!)
+    const bottomSection = document.getElementById('section-bottom');
+    if (bottomSection) bottomSection.innerHTML = '';
+    
+    // Reset URL
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+
+    // If we came from the Archive, RE-OPEN IT
+    if (wasInArchive) {
+        const archiveOverlay = document.getElementById('archive-overlay');
+        if (archiveOverlay) {
+            archiveOverlay.style.display = 'flex';
+            // Clean up the memory flag
+            projectOverlay.removeAttribute('data-from-archive');
+        }
     }
 }
 
