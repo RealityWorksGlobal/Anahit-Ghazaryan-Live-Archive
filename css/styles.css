@@ -16,22 +16,25 @@ body {
     color: var(--color-text);
     font-size: 14px;
     overflow: hidden; 
+    transition: background-color 1s;
 }
+
 
 /* Hide System Cursor Globally */
 body, header, h1, button, a, div, th, td {
     cursor: none !important; 
 }
 
+/* BOTTOM LAYER: The Canvas (Starts Invisible & Blurry) */
 #three-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 999;
-    display: block; /* Ensures no scrollbar weirdness */
+    position: fixed !important;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 6 !important;        /* FORCE BOTTOM */
+    opacity: 0 !important;        /* FORCE INVISIBLE INITIALLY */
+    filter: blur(10px) !important; /* FORCE BLUR */
+    transition: opacity 2s ease, filter 2s ease !important;
+    pointer-events: none !important;
 }
 
 /* =========================================
@@ -40,32 +43,57 @@ body, header, h1, button, a, div, th, td {
 #custom-cursor {
     position: fixed;
     top: 0; left: 0;
-    width: 6px; height: 6px;
+    width: 7px; height: 7px;
     background-color: red; 
     border-radius: 50%;
     pointer-events: none; 
     z-index: 99999; 
     transform: translate(-50%, -50%);
     transition: width 0.2s ease, height 0.2s ease, background-color 0.2s ease;
+    filter: blur(1px);
 }
 
 #custom-cursor.hover-active {
     box-shadow: 0 0 3px 1px rgba(255, 0, 0);
 }
 
-#loader {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: white; z-index: 9999;
-    display: flex; justify-content: center; align-items: center;
-    transition: opacity 0.5s ease;
+
+/* TOP LAYER: The Loader (Starts White & Opaque) */
+#loading-screen {
+    position: fixed !important;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: #ffffff !important; /* Your White Curtain */
+    z-index: 9999 !important;     /* FORCE TOP */
+    opacity: 1;        /* FORCE VISIBLE */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 2s ease-in-out !important;
+    pointer-events: auto;
 }
-.spinner {
-    width: 40px; height: 40px;
-    border: 4px solid #f3f3f3; border-top: 4px solid violet;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+
+
+
+.is-loading-blur {
+    filter: blur(10px) !important;
 }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* This class will be added to your real cursor during loading */
+.cursor-loading-pulse {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    pointer-events: none;
+    z-index: 10000; /* Must be higher than the loading screen */
+    filter: blur(2px);
+    scale: 2;
+    
+    /* The Pulse Animation */
+    animation: cursorPulse 1.5s infinite ease-in-out;
+}
+
 
 /* --- 1. HIDE PERMANENT CURSOR ON TOUCH --- */
 @media (pointer: coarse) {
@@ -125,7 +153,7 @@ header {
     transform: translate(-50%, -50%); 
     max-width: 90%;
     width: max-content;
-    z-index: 500;
+    z-index: 10001 !important; /* FIX: Must be higher than loading-screen (9999) */
     pointer-events: none;
     margin: none;
     text-align: center;
@@ -149,12 +177,22 @@ header {
 #main-scene {
     position: fixed; top: 0; left: 0;
     width: 100vw; height: 100vh;
-    z-index: 1;
+    z-index: 5 !important; /* FIX: Above Canvas (1), Below Loader (9999) */
+    
+    /* Start Hidden/Blurry */
+    opacity: 0; 
+    filter: blur(10px);
+    transition: opacity 1.5s ease, filter 2s ease;
+    
+    /* FIX: Allow clicks to pass through empty areas to the dots */
+    pointer-events: none; 
 }
 
+/* Ensure the inner container acts as a passthrough */
 #dots-container {
     position: absolute; width: 100%; height: 100%;
-    z-index: 10; pointer-events: none;
+    z-index: 10; 
+    pointer-events: none; /* Crucial */
 }
 
 .dot {

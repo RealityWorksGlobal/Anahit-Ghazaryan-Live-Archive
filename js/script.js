@@ -1,11 +1,56 @@
 /* =========================================
- 1. CONFIGURATION & INITIALIZATION
+   1. CONFIGURATION & INITIALIZATION
    ========================================= */
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv";
 const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv";
 
+// --- GLOBAL REVEAL FUNCTION (Defined once at the top) ---
+window.hideLoadingScreen = function() {
+
+    const loader = document.getElementById('loading-screen');
+    const canvas = document.getElementById('three-canvas');
+    const mainScene = document.getElementById('main-scene'); 
+
+    // STAGE 1: Reveal Ghost (Canvas AND Main Scene)
+    if (canvas) {
+        canvas.style.opacity = '1'; 
+        canvas.style.visibility = 'visible';
+    } 
+    
+    // REVEAL THE PARENT CONTAINER
+    if (mainScene) {
+        mainScene.style.opacity = '1';
+    }
+
+    // STAGE 2: Fade Loader (Open the Curtain)
+    setTimeout(() => {
+        if (loader) {
+            loader.style.opacity = '0';
+        }
+    }, 100);
+
+    // STAGE 3: Focus & Cleanup
+    setTimeout(() => {
+        if (canvas) canvas.style.filter = 'blur(0px)';
+        if (mainScene) mainScene.style.filter = 'blur(0px)';
+    
+        
+        setTimeout(() => {
+            if (loader) loader.remove();
+            
+            // Cleanup Cursor
+            if (window.cursorElement) {
+                window.cursorElement.classList.remove('cursor-loading', 'cursor-loading-pulse');
+                Object.assign(window.cursorElement.style, { 
+                    position: '', top: '', left: '', transform: '' 
+                });
+            }
+        }, 1500);
+    }, 1500); 
+};
+
 let allProjectData = [];
-let cachedBioHTML = ""; // This is where we store the bio for instant access
+let cachedBioHTML = ""; 
 let bioLoaded = false;
 let projectsLoaded = false;
 
@@ -23,72 +68,19 @@ Papa.parse(sheetURL, {
         renderTable(allProjectData); 
         renderTags(allProjectData);  
         renderScene(allProjectData); 
-
-        init3D();
-        
-        const hash = window.location.hash;
-        if (hash === '#archive') openArchive();
-        else if (hash.length > 1) openProject(hash.substring(1));
-
+        init3D(); 
         requestAnimationFrame(animateDots);
-        projectsLoaded = true;
-        checkAllReady();
-
-        /* --- START OF NEW PRELOADER LOGIC --- */
         
-        // 1. Setup the Manager to track background loading
-        const manager = new THREE.LoadingManager();
-
-        manager.onLoad = function () {
-            // Only fade out the loader once everything is cached
-            const loaderDiv = document.getElementById('loader');
-            if(loaderDiv) {
-                loaderDiv.style.opacity = '0';
-                setTimeout(() => loaderDiv.remove(), 500);
-            }
-        };
-
-        // 2. Attach the 3D loader to the manager
-        loader = new THREE.GLTFLoader(manager); 
-
-        // 3. Preload Images directly from allProjectData
-        function preloadDatabaseImages() {
-            let totalToLoad = 0;
-
-            allProjectData.forEach(project => {
-                if (project.title_image) {
-                    const urls = project.title_image.split(',').map(url => url.trim());
-                    
-                    urls.forEach(url => {
-                        if (url.length > 0) {
-                            const directLink = convertToDirectLink(url);
-                            totalToLoad++;
-
-                            // Create a memory-only image to force a background download
-                            const cacheImg = new Image();
-                            
-                            // Tell the manager to track this specific file
-                            manager.itemStart(directLink);
-                            
-                            cacheImg.onload = () => manager.itemEnd(directLink);
-                            cacheImg.onerror = () => manager.itemEnd(directLink); // Don't hang on broken links
-                            
-                            cacheImg.src = directLink;
-                        }
-                    });
-                }
-            });
-
-            // If there were zero images found in the sheet, trigger onLoad manually
-            if (totalToLoad === 0) manager.onLoad();
-        }
-
-        // Execute the preload
-        preloadDatabaseImages();
         
-        /* --- END OF NEW PRELOADER LOGIC --- */
+        // --- CALL THE FUNCTION ONCE ---
+        window.hideLoadingScreen(); 
+        // (Deleted the duplicate inline code block that was here)
     }
 });
+
+
+
+
 
 // B. PRE-FETCH BIO (This makes it instant later)
 Papa.parse(bioSheetURL, {
@@ -106,6 +98,48 @@ function checkAllReady() {
     if (projectsLoaded && bioLoaded) {
         if (cursorElement) cursorElement.classList.remove('cursor-loading');
     }
+}
+
+function hideLoadingScreen() {
+    const loader = document.getElementById('loading-screen');
+    const canvas = document.getElementById('three-canvas');
+
+    // STAGE 1: Reveal the Ghost (Turn on the Canvas behind the curtain)
+    if (canvas) {
+        canvas.style.opacity = '1'; // It is still blurry (blur: 10px)
+        canvas.style.visibility = 'visible';
+    } else {
+    }
+    
+
+    // STAGE 2: Open the Curtain (Fade out Loader)
+    // We delay slightly to ensure the Canvas is painted and ready
+    setTimeout(() => {
+        {
+            loader.style.opacity = '0';
+        }
+    }, 100);
+
+    // STAGE 3: Focus the Camera (Remove Blur)
+    setTimeout(() => {
+        if (canvas) {
+            canvas.style.filter = 'blur(0px)';
+        }
+        
+        // Final Cleanup
+        setTimeout(() => {
+            if (loader) loader.remove();
+            
+            // Release cursor
+            if (window.cursorElement) {
+                window.cursorElement.classList.remove('cursor-loading', 'cursor-loading-pulse');
+                // Reset placement
+                Object.assign(window.cursorElement.style, { 
+                    position: '', top: '', left: '', transform: '' 
+                });
+            }
+        }, 1500);
+    }, 1500); 
 }
 
 /* =========================================
@@ -729,6 +763,32 @@ window.addEventListener('mousedown', (e) => {
     }
 });
 
+// 1. When the script runs, immediately move the cursor to the center and start pulsing
+if (cursorElement) {
+    cursorElement.classList.add('cursor-loading-pulse');
+}
+
+// 2. When the site is fully loaded, stop pulsing and release the cursor
+window.addEventListener('load', () => {
+    const loader = document.getElementById('loading-screen');
+    
+    if (loader) {
+        loader.style.transition = "opacity 0.8s ease";
+        loader.style.opacity = '0';
+        setTimeout(() => {
+            
+            // Remove the pulse and fixed centering so it follows the mouse again
+            if (cursorElement) {
+                cursorElement.classList.remove('cursor-loading-pulse');
+                cursorElement.style.position = '';
+                cursorElement.style.top = '';
+                cursorElement.style.left = '';
+                cursorElement.style.transform = '';
+            }
+        }, 500); // Wait for fade out
+    }
+});
+
 /* =========================================
    9. DYNAMIC 3D HOVER (Final: Fisheye Reflection)
    ========================================= */
@@ -766,18 +826,31 @@ function init3D() {
     if (!canvas) {
         canvas = document.createElement('canvas');
         canvas.id = 'three-canvas';
-        Object.assign(canvas.style, {
-            position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-            pointerEvents: 'none', zIndex: '999'
-        });
         document.body.appendChild(canvas);
     }
 
+    // MODIFIED: Apply styles for the "Ghost Reveal" (Start hidden & blurry)
+    Object.assign(canvas.style, {
+        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+        pointerEvents: 'none', 
+        opacity: '0',       // Start invisible
+        filter: 'blur(10px)', // Start blurry
+        transition: 'opacity 1.5s ease, filter 1.5s ease' // Allow fading
+    });
+
     // 2. Scene & Renderer
     scene = new THREE.Scene();
-    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+    
+    // MODIFIED: Ensure renderer handles transparency correctly
+    renderer = new THREE.WebGLRenderer({ 
+        canvas: canvas, 
+        alpha: true,      // Essential for transparency
+        antialias: true 
+    });
+    
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0); // Transparent background (No white flash)
 
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -785,7 +858,7 @@ function init3D() {
 
     // --- 3. HDRI LOADER (Standard Mapping) ---
     new THREE.RGBELoader()
-        .setPath(ASSET_PATH)
+        .setPath(typeof ASSET_PATH !== 'undefined' ? ASSET_PATH : '') // Safety check
         .load('world.hdr', function (texture) {
             texture.mapping = THREE.EquirectangularReflectionMapping; 
             globalEnvMap = texture; 
