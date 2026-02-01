@@ -1,44 +1,96 @@
 /* =========================================
-   1. CONFIGURATION & INITIALIZATION
+   1. GLOBAL CONFIGURATION & VARIABLES
    ========================================= */
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv";
 const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv";
 
-// --- GLOBAL REVEAL FUNCTION (Defined once at the top) ---
-window.hideLoadingScreen = function() {
+// PATHS
+const ASSET_PATH = './assets/'; 
 
+// GLOBAL STATE
+let activeDots = [];
+let mouse = { x: -9999, y: -9999 }; // Fixes "mouse is not defined"
+let allProjectData = [];
+let cachedBioHTML = ""; 
+let bioLoaded = false;
+let projectsLoaded = false;
+let currentAudioDot = null; // <--- ADD THIS HERE (Move it from bottom to top)
+
+/* =========================================
+   2. INITIALIZATION & DATA LOADING
+   ========================================= */
+const cursorElement = document.getElementById('custom-cursor');
+if (cursorElement) cursorElement.classList.add('cursor-loading');
+
+// A. FETCH PROJECT DATA
+Papa.parse(sheetURL, {
+    download: true,
+    header: true,
+    complete: function(results) {
+        allProjectData = results.data;
+        
+        // Render UI
+        renderTable(allProjectData); 
+        renderTags(allProjectData);  
+        
+        // Render Scene (Fixes "renderScene is not defined")
+        renderScene(allProjectData); 
+        
+        // Initialize 3D
+        init3D(); 
+        
+        // Start Physics Loop
+        requestAnimationFrame(animateDots);
+        
+        // Reveal Site
+        window.hideLoadingScreen();
+    }
+});
+
+// B. PRE-FETCH BIO
+Papa.parse(bioSheetURL, {
+    download: true,
+    header: true,
+    complete: function(results) {
+        if(results.data && results.data[0]) {
+            cachedBioHTML = results.data[0]['content'] || results.data[0]['bio_text'];
+        }
+        bioLoaded = true;
+        checkAllReady();
+    }
+});
+
+function checkAllReady() {
+    if (projectsLoaded && bioLoaded) {
+        if (cursorElement) cursorElement.classList.remove('cursor-loading');
+    }
+}
+
+// C. REVEAL FUNCTION
+window.hideLoadingScreen = function() {
     const loader = document.getElementById('loading-screen');
     const canvas = document.getElementById('three-canvas');
     const mainScene = document.getElementById('main-scene'); 
 
-    // STAGE 1: Reveal Ghost (Canvas AND Main Scene)
+    // STAGE 1: Reveal Ghost (Canvas AND Dots)
     if (canvas) {
         canvas.style.opacity = '1'; 
         canvas.style.visibility = 'visible';
     } 
-    
-    // REVEAL THE PARENT CONTAINER
-    if (mainScene) {
-        mainScene.style.opacity = '1';
-    }
+    if (mainScene) mainScene.style.opacity = '1';
 
-    // STAGE 2: Fade Loader (Open the Curtain)
+    // STAGE 2: Fade Loader
     setTimeout(() => {
-        if (loader) {
-            loader.style.opacity = '0';
-        }
+        if (loader) loader.style.opacity = '0';
     }, 100);
 
     // STAGE 3: Focus & Cleanup
     setTimeout(() => {
         if (canvas) canvas.style.filter = 'blur(0px)';
         if (mainScene) mainScene.style.filter = 'blur(0px)';
-    
         
         setTimeout(() => {
             if (loader) loader.remove();
-            
-            // Cleanup Cursor
             if (window.cursorElement) {
                 window.cursorElement.classList.remove('cursor-loading', 'cursor-loading-pulse');
                 Object.assign(window.cursorElement.style, { 
@@ -49,105 +101,9 @@ window.hideLoadingScreen = function() {
     }, 1500); 
 };
 
-let allProjectData = [];
-let cachedBioHTML = ""; 
-let bioLoaded = false;
-let projectsLoaded = false;
-
-const cursorElement = document.getElementById('custom-cursor');
-
-// START GLOBAL LOADING PULSE
-if (cursorElement) cursorElement.classList.add('cursor-loading');
-
-// A. FETCH DATABASE (Archive & Dots)
-Papa.parse(sheetURL, {
-    download: true,
-    header: true,
-    complete: function(results) {
-        allProjectData = results.data;
-        renderTable(allProjectData); 
-        renderTags(allProjectData);  
-        renderScene(allProjectData); 
-        init3D(); 
-        requestAnimationFrame(animateDots);
-        
-        
-        // --- CALL THE FUNCTION ONCE ---
-        window.hideLoadingScreen(); 
-        // (Deleted the duplicate inline code block that was here)
-    }
-});
-
-
-
-
-
-// B. PRE-FETCH BIO (This makes it instant later)
-Papa.parse(bioSheetURL, {
-    download: true,
-    header: true,
-    complete: function(results) {
-        cachedBioHTML = results.data[0]['content'] || results.data[0]['bio_text'];
-        bioLoaded = true;
-        checkAllReady();
-    }
-});
-
-// C. STOP PULSE ONLY WHEN EVERYTHING IS IN MEMORY
-function checkAllReady() {
-    if (projectsLoaded && bioLoaded) {
-        if (cursorElement) cursorElement.classList.remove('cursor-loading');
-    }
-}
-
-function hideLoadingScreen() {
-    const loader = document.getElementById('loading-screen');
-    const canvas = document.getElementById('three-canvas');
-
-    // STAGE 1: Reveal the Ghost (Turn on the Canvas behind the curtain)
-    if (canvas) {
-        canvas.style.opacity = '1'; // It is still blurry (blur: 10px)
-        canvas.style.visibility = 'visible';
-    } else {
-    }
-    
-
-    // STAGE 2: Open the Curtain (Fade out Loader)
-    // We delay slightly to ensure the Canvas is painted and ready
-    setTimeout(() => {
-        {
-            loader.style.opacity = '0';
-        }
-    }, 100);
-
-    // STAGE 3: Focus the Camera (Remove Blur)
-    setTimeout(() => {
-        if (canvas) {
-            canvas.style.filter = 'blur(0px)';
-        }
-        
-        // Final Cleanup
-        setTimeout(() => {
-            if (loader) loader.remove();
-            
-            // Release cursor
-            if (window.cursorElement) {
-                window.cursorElement.classList.remove('cursor-loading', 'cursor-loading-pulse');
-                // Reset placement
-                Object.assign(window.cursorElement.style, { 
-                    position: '', top: '', left: '', transform: '' 
-                });
-            }
-        }, 1500);
-    }, 1500); 
-}
-
 /* =========================================
-   2. SCENE LOGIC (The Dots)
+   3. SCENE LOGIC (The Dots)
    ========================================= */
-let activeDots = [];
-let mouse = { x: -9999, y: -9999 }; 
-
 function renderScene(data) {
     const container = document.getElementById('dots-container');
     if (!container) return;
@@ -155,39 +111,48 @@ function renderScene(data) {
     container.innerHTML = ""; 
     activeDots = []; 
 
-    // --- A. RENDER PROJECT DOTS ---
     data.forEach(project => {
         if (!project.project_name) return;
 
         const dot = document.createElement('div');
         dot.className = 'dot';
 
-        // ---------------------------------------------------------
-        // START MODIFICATION: BIND DATA FOR CLICKS & 3D HOVER
-        // ---------------------------------------------------------
-        
-        // 1. Attach Folder (Essential for your Click & Hover logic)
+        // 1. Folder Logic
         if (project.folder) {
             dot.dataset.folder = project.folder; 
-            // 2. Attach 3D File (If exists in Google Sheet)
-            const glbFile = project.model_glb; 
-
-            if (glbFile && glbFile.trim() !== "") {
-                dot.dataset.glb = glbFile.trim();
-                dot.classList.add('has-3d');
-            }
-
-            // 3. Attach Click Handler directly to the dot
             dot.onclick = function(e) {
                 if (e.pointerType === 'touch') return; 
                 openProject(project.folder);
-};
+            };
         }
-        // ---------------------------------------------------------
-        // END MODIFICATION
-        // ---------------------------------------------------------
-        
-        // Random Position & Velocity
+
+        // 2. 3D Model Logic
+        const glbFile = project.model_glb; 
+        if (glbFile && glbFile.trim() !== "") {
+            dot.dataset.glb = glbFile.trim();
+            dot.classList.add('has-3d');
+        }
+
+        // 3. Audio Logic (Local Files)
+        let audioObj = null;
+        const audioFilename = project.audio;
+        if (audioFilename && audioFilename.trim() !== "") {
+            dot.classList.add('has-audio');
+            
+            // Construct path: ./assets/filename.wav
+            const localAudioPath = ASSET_PATH + audioFilename.trim();
+            
+            audioObj = new Audio(localAudioPath);
+            audioObj.loop = true; 
+            audioObj.volume = 0;  
+            audioObj.preload = 'auto'; 
+            
+            audioObj.addEventListener('error', (e) => {
+                console.warn("Audio file missing or blocked:", localAudioPath);
+            });
+        }
+
+        // 4. Random Position
         let x = Math.random() * 80 + 10; 
         let y = Math.random() * 80 + 10;
         let vx = (Math.random() - 0.5) * 0.06;
@@ -205,67 +170,48 @@ function renderScene(data) {
             x: x, y: y, vx: vx, vy: vy,
             folder: project.folder,
             hasFolder: !!project.folder,
-            isArchive: false 
+            audio: audioObj,
+            hasAudio: !!audioObj
         });
-    });
-
-    // --- B. RENDER THE "ARCHIVE TRIGGER" DOT ---
-    const archiveDot = document.createElement('div');
-    archiveDot.id = 'archive-trigger';
-    archiveDot.onclick = openArchive;
-    
-    // Start at center
-    let ax = 50; 
-    let ay = 50;
-    
-    // Drift velocity
-    let avx = (Math.random() - 0.5) * 0.06;
-    let avy = (Math.random() - 0.5) * 0.06;
-
-    archiveDot.style.left = ax + '%';
-    archiveDot.style.top = ay + '%';
-    container.appendChild(archiveDot);
-
-    activeDots.push({
-        element: archiveDot,
-        x: ax, y: ay, vx: avx, vy: avy,
-        folder: null, hasFolder: false,
-        isArchive: true 
     });
 }
 
 /* =========================================
-   3. PHYSICS ENGINE
+   4. PHYSICS ENGINE & ANIMATION LOOP
    ========================================= */
-const SENSITIVITY_RADIUS = 100; 
+const SENSITIVITY_RADIUS = 80; 
+const AUDIO_RADIUS = 80; 
 const MAX_SCALE = 1.1;            
 
 function animateDots() {
-    const archiveOpen = document.getElementById('archive-overlay').style.display === 'flex';
-    const projectOpen = document.getElementById('project-overlay').style.display === 'flex';
-    const aboutOpen = document.getElementById('about-overlay').style.display === 'flex';
+    // 1. Check overlays
+    const archiveOverlay = document.getElementById('archive-overlay');
+    const projectOverlay = document.getElementById('project-overlay');
+    const aboutOverlay = document.getElementById('about-overlay');
+
+    const archiveOpen = archiveOverlay ? archiveOverlay.style.display === 'flex' : false;
+    const projectOpen = projectOverlay ? projectOverlay.style.display === 'flex' : false;
+    const aboutOpen = aboutOverlay ? aboutOverlay.style.display === 'flex' : false;
     const isOverlayOpen = archiveOpen || projectOpen || aboutOpen;
     
-    let isHoveringAny = false;
+    // 2. Hide mouse if overlay is open
     const localMouseX = isOverlayOpen ? -9999 : mouse.x;
     const localMouseY = isOverlayOpen ? -9999 : mouse.y;
 
     activeDots.forEach(dot => {
-        // --- 3D: FREEZE LOGIC ---
+        // A. 3D Freeze
         if (dot.element.classList.contains('is-active-3d')) {
-            // We skip the position math entirely for this frame
-            // But we still update the DOM position to be safe
             dot.element.style.left = dot.x + '%';
             dot.element.style.top = dot.y + '%';
             return; 
         }
-        // -------------------------
-        // 1. Position Math
+
+        // B. Position Math
         const dotPixelX = (window.innerWidth * dot.x) / 100;
         const dotPixelY = (window.innerHeight * dot.y) / 100;
         const dist = Math.hypot(localMouseX - dotPixelX, localMouseY - dotPixelY);
 
-        // 2. Move Logic
+        // C. Move Logic
         let speedFactor = 1.0;
         if (dist < SENSITIVITY_RADIUS) {
             speedFactor = 1 - (1 - (dist / SENSITIVITY_RADIUS)); 
@@ -274,67 +220,72 @@ function animateDots() {
         dot.x += dot.vx * speedFactor;
         dot.y += dot.vy * speedFactor;
 
-        // Bounce off walls
+        // Bounce
         if (dot.x <= 2 || dot.x >= 98) dot.vx *= -1;
         if (dot.y <= 2 || dot.y >= 98) dot.vy *= -1;
+
+        // D. Audio Logic (Volume Fading)
+        if (dot.hasAudio && !isOverlayOpen) {
+            if (currentAudioDot && currentAudioDot.element === dot.element) {
+                return; // Skip to next dot
+            }
+            if (dist < AUDIO_RADIUS) {
+                let vol = 1 - (dist / AUDIO_RADIUS);
+                vol = Math.max(0, Math.min(1, vol)); 
+                
+                if (dot.audio) {
+                    dot.audio.volume = vol;
+                    if (dot.audio.paused && vol > 0.01) {
+                        dot.audio.play().catch(e => { /* Ignore autoplay blocks */ });
+                    }
+                }
+            } else {
+                if (dot.audio && !dot.audio.paused) {
+                    dot.audio.pause();
+                    dot.audio.currentTime = 0; 
+                }
+            }
+        }
+
+        // E. Visual Logic
+        let scale = 1;
+        let shadowStyle = 'none';
+
+        if (dist < SENSITIVITY_RADIUS) {
+            const proximity = 1 - (dist / SENSITIVITY_RADIUS);
+            scale = 1 + (proximity * (MAX_SCALE - 1));
+
+            if (dot.hasFolder) {
+                const blur = 15 * proximity;   
+                const spread = 2 * proximity; 
+                const alpha = proximity * 1; 
+                shadowStyle = `0 0 ${blur}px ${spread}px rgba(0, 47, 167, ${alpha})`;
+                dot.element.style.opacity = 1;
+            } else {
+                dot.element.style.opacity = 0.3;
+            }
+        } else {
+            dot.element.style.opacity = dot.hasFolder ? 1 : 0.3;
+        }
 
         // Update DOM
         dot.element.style.left = dot.x + '%';
         dot.element.style.top = dot.y + '%';
-
-        // 3. Visual Logic
-        if (dot.isArchive) {
-            if (dist < SENSITIVITY_RADIUS) isHoveringAny = true;
-        } 
-        else {
-            let scale = 1;
-            let shadowStyle = 'none';
-
-            if (dist < SENSITIVITY_RADIUS) {
-                const proximity = 1 - (dist / SENSITIVITY_RADIUS);
-                scale = 1 + (proximity * (MAX_SCALE - 1));
-
-                if (dot.hasFolder) {
-                    isHoveringAny = true;
-                    const blur = 15 * proximity;   
-                    const spread = 2 * proximity; 
-                    const alpha = proximity * 1; 
-                    shadowStyle = `0 0 ${blur}px ${spread}px rgba(0, 47, 167, ${alpha})`;
-                    dot.element.style.opacity = 1;
-                } else {
-                    dot.element.style.opacity = 0.3;
-                }
-            } else {
-                dot.element.style.opacity = dot.hasFolder ? 1 : 0.3;
-            }
-
-            dot.element.style.transform = `translate(-50%, -50%) scale(${scale})`;
-            dot.element.style.boxShadow = shadowStyle;
-        }
+        dot.element.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        dot.element.style.boxShadow = shadowStyle;
     });
 
-    if (!isOverlayOpen) {
-        document.body.style.cursor = isHoveringAny ? 'pointer' : 'default';
-    }
-    
     requestAnimationFrame(animateDots);
 }
 
+// Global Mouse Tracker (Crucial for Physics)
 document.addEventListener('mousemove', (e) => { 
     mouse.x = e.clientX; 
     mouse.y = e.clientY; 
 });
 
-// Click Handler for Dots
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('dot')) {
-        const dotData = activeDots.find(d => d.element === e.target);
-        if (dotData && dotData.hasFolder) openProject(dotData.folder);
-    }
-});
-
 /* =========================================
-   4. UI HELPER FUNCTIONS
+   5. UI HELPER FUNCTIONS (Tags, Table, Nav)
    ========================================= */
 
 function renderTags(data) {
@@ -412,73 +363,17 @@ function filterByTag(selectedTag, buttonElement) {
     });
 }
 
-function sortTable(columnIndex) {
-    const table = document.getElementById("artist-database");
-    
-    const headers = table.querySelectorAll('th');
-    headers.forEach(th => th.classList.remove('active-sort'));
-    headers[columnIndex].classList.add('active-sort');
-    
-    let switching = true; 
-    let direction = "asc"; 
-    let switchCount = 0;
-    
-    while (switching) {
-        switching = false; 
-        const rows = table.rows; 
-        let i, shouldSwitch;
-        
-        for (i = 1; i < (rows.length - 1); i++) {
-            shouldSwitch = false;
-            const x = rows[i].getElementsByTagName("TD")[columnIndex];
-            const y = rows[i + 1].getElementsByTagName("TD")[columnIndex];
-            
-            if (!x || !y) continue;
-
-            const xContent = x.textContent.trim().toLowerCase();
-            const yContent = y.textContent.trim().toLowerCase();
-            
-            const xNum = parseFloat(xContent); 
-            const yNum = parseFloat(yContent);
-            const isNumeric = !isNaN(xNum) && !isNaN(yNum);
-            
-            if (direction === "asc") {
-                if (isNumeric ? xNum > yNum : xContent > yContent) { shouldSwitch = true; break; }
-            } else if (direction === "desc") {
-                if (isNumeric ? xNum < yNum : xContent < yContent) { shouldSwitch = true; break; }
-            }
-        }
-        
-        if (shouldSwitch) {
-            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-            switching = true; 
-            switchCount++;
-        } else {
-            if (switchCount === 0 && direction === "asc") { 
-                direction = "desc"; 
-                switching = true; 
-            }
-        }
-    }
-}
-
-
-/* =========================================
-   5. NAVIGATION (Simple & Reliable)
-   ========================================= */
-
-// Single variable memory
+// Navigation Memory
 let wasArchiveOpenBefore = false;
 
 function closeAllOverlays() {
-    const overlays = ['archive-overlay', 'project-overlay', 'about-overlay'];
-    overlays.forEach(id => {
-        document.getElementById(id).style.display = 'none';
+    ['archive-overlay', 'project-overlay', 'about-overlay'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
     });
     if (cursorElement) cursorElement.classList.remove('cursor-loading');
 }
 
-// --- ARCHIVE ---
 function openArchive() {
     closeAllOverlays();
     document.getElementById('archive-overlay').style.display = 'flex';
@@ -490,107 +385,72 @@ function closeArchive() {
     history.pushState("", document.title, window.location.pathname);
 }
 
-// --- BIO / ABOUT ---
 function openAbout() {
-    // Memory for navigation
-    wasArchiveOpenBefore = (document.getElementById('archive-overlay').style.display === 'flex');
-    const projectOpen = (document.getElementById('project-overlay').style.display === 'flex');
+    const archiveEl = document.getElementById('archive-overlay');
+    const projectEl = document.getElementById('project-overlay');
+    
+    wasArchiveOpenBefore = (archiveEl && archiveEl.style.display === 'flex');
+    const projectOpen = (projectEl && projectEl.style.display === 'flex');
     const currentProjectHash = window.location.hash;
 
     closeAllOverlays();
     const overlay = document.getElementById('about-overlay');
     const container = document.getElementById('bio-container');
     
-    // Set return attributes
     if (projectOpen) overlay.setAttribute('data-return', currentProjectHash);
     else if (wasArchiveOpenBefore) overlay.setAttribute('data-return', '#archive');
     else overlay.removeAttribute('data-return');
 
-    // INSTANT DISPLAY
-    if (bioLoaded) {
-        container.innerHTML = cachedBioHTML;
-    } else {
-        container.textContent = "Loading...";
-    }
+    if (bioLoaded) container.innerHTML = cachedBioHTML;
+    else container.textContent = "Loading...";
 
     overlay.style.display = 'flex';
 }
+
 function closeAbout() {
     const overlay = document.getElementById('about-overlay');
     const returnPath = overlay.getAttribute('data-return');
-    
     overlay.style.display = 'none';
 
-    if (returnPath === '#archive') {
-        openArchive();
-    } else if (returnPath && returnPath.startsWith('#')) {
-        openProject(returnPath.substring(1));
-    } else {
-        history.pushState("", document.title, window.location.pathname);
-    }
+    if (returnPath === '#archive') openArchive();
+    else if (returnPath && returnPath.startsWith('#')) openProject(returnPath.substring(1));
+    else history.pushState("", document.title, window.location.pathname);
 }
 
 /* =========================================
-   6. PROJECT & CAROUSEL
+   6. PROJECT OVERLAY & CONTENT
    ========================================= */
-let currentImages = [];
-let currentImgIndex = 0;
-
 function convertToDirectLink(url) {
     if (url.includes("drive.google.com")) {
         let id = "";
-        if (url.includes("/d/")) {
-            id = url.split('/d/')[1].split('/')[0];
-        } else if (url.includes("id=")) {
-            id = url.split('id=')[1].split('&')[0];
-        }
+        if (url.includes("/d/")) id = url.split('/d/')[1].split('/')[0];
+        else if (url.includes("id=")) id = url.split('id=')[1].split('&')[0];
         
-        if (id) {
-            // Using the thumbnail preview link is much more reliable
-            // =s2000 tells Google to provide a high-res version (up to 2000px)
-            return `https://lh3.googleusercontent.com/u/0/d/${id}=s2000`;
-        }
+        if (id) return `https://lh3.googleusercontent.com/u/0/d/${id}=s2000`;
     }
     return url; 
 }
 
 function openProject(folderName) {
-    // --- 1. Reset Interaction States ---
-    isDragging = false;
-    isHovering = false;
-    interactionType = null;
-    didTouchHitDot = false;
-    if (typeof cursorElement !== 'undefined' && cursorElement) {
-        cursorElement.classList.remove('hover-active', 'cursor-loading');
-    }
-
     if (!folderName) return;
     const project = allProjectData.find(p => p.folder === folderName);
     
     if (project) {
-        // --- CRITICAL FIX: Check Archive state BEFORE closing overlays ---
         const archiveOverlay = document.getElementById('archive-overlay');
         const isArchiveOpen = (archiveOverlay && archiveOverlay.style.display === 'flex');
 
-        // Now close everything
         closeAllOverlays();
         
         const projectOverlay = document.getElementById('project-overlay');
         const scrollContainer = document.getElementById('project-scroll-container');
-        
-        // Reset scroll to top
         if (scrollContainer) scrollContainer.scrollTop = 0;
 
-        // Save the state: Did we come from the Archive?
-        if (isArchiveOpen) {
-            projectOverlay.setAttribute('data-from-archive', 'true');
-        } else {
-            projectOverlay.removeAttribute('data-from-archive');
-        }
+        if (isArchiveOpen) projectOverlay.setAttribute('data-from-archive', 'true');
+        else projectOverlay.removeAttribute('data-from-archive');
 
         window.location.hash = folderName;
         
-        // --- 3. TOP SECTION: Text ---
+        // Populate Text
         const titleEl = document.getElementById('popup-title');
         const metaEl = document.getElementById('popup-meta');
         const descEl = document.getElementById('popup-description');
@@ -599,74 +459,54 @@ function openProject(folderName) {
         if (metaEl) metaEl.textContent = `${project.year} — ${project.medium}`;
         if (descEl) descEl.innerHTML = (project.description || "").replace(/\n/g, '<br>');
 
-        // --- 4. TOP SECTION: Image & Link ---
+        // Populate Image
         const imgElement = document.getElementById('poster-image');
         const visualContainer = document.querySelector('.project-visuals');
-
-        // Reset Logic
         projectOverlay.classList.remove('no-image');
         if (visualContainer) visualContainer.classList.remove('has-link');
         
-        if (imgElement) {
-            imgElement.onclick = null;
-            imgElement.style.display = 'none'; 
-        }
-
         let currentImages = [];
-        
-        // ROBUST GETTER: Finds the column even if it has spaces or capitals
-        // 1. Get all keys (column names)
         const keys = Object.keys(project);
-        // 2. Find the one that looks like 'title_image'
         const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
-        // 3. Get the value
         const rawImageString = imageKey ? project[imageKey] : null;
 
         if (rawImageString) {
-            currentImages = rawImageString.split(',')
-                .map(u => u.trim())
-                .filter(u => u.length > 0)
-                .map(u => convertToDirectLink(u));
+            currentImages = rawImageString.split(',').map(u => convertToDirectLink(u.trim())).filter(u => u.length > 0);
         }
+        
         if (currentImages.length > 0 && imgElement) {
             imgElement.style.display = 'block';
             imgElement.src = currentImages[0];
-
             if (project.title_link && project.title_link.trim() !== "") {
-                const linkUrl = project.title_link.trim();
                 if (visualContainer) visualContainer.classList.add('has-link');
-                imgElement.onclick = () => window.open(linkUrl, '_blank');
+                imgElement.onclick = () => window.open(project.title_link.trim(), '_blank');
+            } else {
+                imgElement.onclick = null;
             }
         } else {
             projectOverlay.classList.add('no-image');
+            if (imgElement) imgElement.style.display = 'none';
         }
 
-        // --- 5. BOTTOM SECTION (With YouTube Fix) ---
+        // Bottom Section
         const bottomSection = document.getElementById('section-bottom');
         if (bottomSection) {
             bottomSection.innerHTML = '';    
             bottomSection.style.display = 'none'; 
 
             const has = (str) => str && str.trim() !== "";
-            
-            // Robust ID Extractor
             const getYouTubeID = (url) => {
-                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-                const match = url.match(regExp);
+                const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
                 return (match && match[2].length === 11) ? match[2] : null;
             };
 
-            // CHECK 1: Video
             if (has(project.video)) {
                 const videoID = getYouTubeID(project.video.trim());
                 if (videoID) {
                     bottomSection.style.display = 'flex';
-                    const embedUrl = `https://www.youtube.com/embed/${videoID}?rel=0`;
-                    bottomSection.innerHTML = `<div class="video-container"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>`;
+                    bottomSection.innerHTML = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${videoID}?rel=0" frameborder="0" allowfullscreen></iframe></div>`;
                 }
-            } 
-            // CHECK 2: Website Image
-            else if (has(project.website_image)) {
+            } else if (has(project.website_image)) {
                 bottomSection.style.display = 'flex';
                 const img = document.createElement('img');
                 img.src = convertToDirectLink(project.website_image.trim());
@@ -676,9 +516,7 @@ function openProject(folderName) {
                     img.onclick = () => window.open(project.website_link.trim(), '_blank');
                 }
                 bottomSection.appendChild(img);
-            }
-            // CHECK 3: Carousel
-            else if (has(project.carousel)) {
+            } else if (has(project.carousel)) {
                 bottomSection.style.display = 'flex';
                 const cImg = document.createElement('img');
                 const cLinks = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
@@ -694,35 +532,22 @@ function openProject(folderName) {
 
 function closeProject() {
     const projectOverlay = document.getElementById('project-overlay');
-    
-    // Check if we came from the Archive
     const wasInArchive = projectOverlay.getAttribute('data-from-archive') === 'true';
 
-    // Hide Project
     projectOverlay.style.display = "none";
     
-    // Stop any videos playing (Important!)
+    // Clear Content
     const bottomSection = document.getElementById('section-bottom');
     if (bottomSection) bottomSection.innerHTML = '';
     
-    // Reset URL
     history.pushState("", document.title, window.location.pathname + window.location.search);
 
-    // If we came from the Archive, RE-OPEN IT
-    if (wasInArchive) {
-        const archiveOverlay = document.getElementById('archive-overlay');
-        if (archiveOverlay) {
-            archiveOverlay.style.display = 'flex';
-            // Clean up the memory flag
-            projectOverlay.removeAttribute('data-from-archive');
-        }
-    }
+    if (wasInArchive) openArchive();
 }
 
 /* =========================================
-   7. UNIFIED CLICK HANDLERS
+   7. EVENTS & CURSOR
    ========================================= */
-
 window.onclick = function(event) {
     if (event.target.id === 'project-overlay') closeProject();
     if (event.target.id === 'archive-overlay') closeArchive();
@@ -731,73 +556,30 @@ window.onclick = function(event) {
 
 document.addEventListener('keydown', (e) => {
     if (e.key === "Escape") {
-        const aboutOpen = document.getElementById('about-overlay').style.display === 'flex';
-        const projectOpen = document.getElementById('project-overlay').style.display === 'flex';
-        const archiveOpen = document.getElementById('archive-overlay').style.display === 'flex';
-
-        if (aboutOpen) closeAbout();
-        else if (projectOpen) closeProject();
-        else if (archiveOpen) closeArchive();
+        if (document.getElementById('about-overlay').style.display === 'flex') closeAbout();
+        else if (document.getElementById('project-overlay').style.display === 'flex') closeProject();
+        else if (document.getElementById('archive-overlay').style.display === 'flex') closeArchive();
     }
 });
 
-/* =========================================
-   8. CURSOR LOGIC
-   ========================================= */
+// Cursor
 document.addEventListener('mousemove', (e) => {
-    cursorElement.style.left = e.clientX + 'px';
-    cursorElement.style.top = e.clientY + 'px';
-
-    const target = e.target;
-    const isClickable = target.closest(`button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #archive-trigger, .carousel-nav`);
-
-    if (isClickable) cursorElement.classList.add('hover-active');
-    else cursorElement.classList.remove('hover-active');
-});
-
-window.addEventListener('mousedown', (e) => {
-    const isInteractive = e.target.closest(`button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #archive-trigger, .carousel-nav, .popup-panel`);
-    if (!isInteractive) {
-        cursorElement.classList.add('cursor-loading');
-        setTimeout(() => cursorElement.classList.remove('cursor-loading'), 500);
-    }
-});
-
-// 1. When the script runs, immediately move the cursor to the center and start pulsing
-if (cursorElement) {
-    cursorElement.classList.add('cursor-loading-pulse');
-}
-
-// 2. When the site is fully loaded, stop pulsing and release the cursor
-window.addEventListener('load', () => {
-    const loader = document.getElementById('loading-screen');
-    
-    if (loader) {
-        loader.style.transition = "opacity 0.8s ease";
-        loader.style.opacity = '0';
-        setTimeout(() => {
-            
-            // Remove the pulse and fixed centering so it follows the mouse again
-            if (cursorElement) {
-                cursorElement.classList.remove('cursor-loading-pulse');
-                cursorElement.style.position = '';
-                cursorElement.style.top = '';
-                cursorElement.style.left = '';
-                cursorElement.style.transform = '';
-            }
-        }, 500); // Wait for fade out
+    if (cursorElement) {
+        cursorElement.style.left = e.clientX + 'px';
+        cursorElement.style.top = e.clientY + 'px';
+        
+        const isClickable = e.target.closest(`button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #fixed-archive-dot, .carousel-nav`);
+        if (isClickable) cursorElement.classList.add('hover-active');
+        else cursorElement.classList.remove('hover-active');
     }
 });
 
 /* =========================================
-   9. DYNAMIC 3D HOVER (Final: Fisheye Reflection)
+   8. DYNAMIC 3D HOVER (Fisheye Reflection)
    ========================================= */
-
-const ASSET_PATH = './assets/';
-const MODEL_SCALE = 0.5;
+const MODEL_SCALE = 0.7;
 const CLOSE_DELAY = 500;
 
-// --- Variables ---
 let scene, camera, renderer, loader, raycaster;
 let globalEnvMap = null; 
 let currentWrapper = null;
@@ -805,7 +587,6 @@ let currentModel = null;
 let modelCache = {};
 let closeTimer = null;
 
-// --- State Flags ---
 let targetScale = 0;
 let currentScale = 0;
 let activeDot = null;
@@ -814,58 +595,37 @@ let isHovering = false;
 let previousMouse = { x: 0, y: 0 };
 let rotVelocity = { x: 0, y: 0 };
 
-// --- Math Tools ---
 const mathPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const planeIntersectPoint = new THREE.Vector3();
 
 function init3D() {
     if (typeof THREE === 'undefined') return;
 
-    // 1. Setup Canvas
     let canvas = document.getElementById('three-canvas');
-    if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.id = 'three-canvas';
-        document.body.appendChild(canvas);
-    }
+    if (!canvas) return; // Should exist in HTML
 
-    // MODIFIED: Apply styles for the "Ghost Reveal" (Start hidden & blurry)
-    Object.assign(canvas.style, {
-        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-        pointerEvents: 'none', 
-        opacity: '0',       // Start invisible
-        filter: 'blur(10px)', // Start blurry
-        transition: 'opacity 1.5s ease, filter 1.5s ease' // Allow fading
-    });
+    // Styling managed by CSS and hideLoadingScreen, but ensuring basics here
+    canvas.style.opacity = '0';
+    canvas.style.filter = 'blur(10px)';
 
-    // 2. Scene & Renderer
     scene = new THREE.Scene();
     
-    // MODIFIED: Ensure renderer handles transparency correctly
-    renderer = new THREE.WebGLRenderer({ 
-        canvas: canvas, 
-        alpha: true,      // Essential for transparency
-        antialias: true 
-    });
-    
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0); // Transparent background (No white flash)
-
+    renderer.setClearColor(0x000000, 0); 
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9; 
 
-    // --- 3. HDRI LOADER (Standard Mapping) ---
     new THREE.RGBELoader()
-        .setPath(typeof ASSET_PATH !== 'undefined' ? ASSET_PATH : '') // Safety check
+        .setPath(ASSET_PATH)
         .load('world.hdr', function (texture) {
             texture.mapping = THREE.EquirectangularReflectionMapping; 
             globalEnvMap = texture; 
             scene.environment = texture;
         });
 
-    // 4. Camera
     const aspect = window.innerWidth / window.innerHeight;
     const viewSize = 10;
     camera = new THREE.OrthographicCamera(
@@ -876,11 +636,9 @@ function init3D() {
     camera.position.set(20, 20, 20);
     camera.lookAt(0, 0, 0);
 
-    // 5. Lights (Fallback)
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     scene.add(hemiLight);
 
-    // 6. Tools
     loader = new THREE.GLTFLoader();
     raycaster = new THREE.Raycaster();
 
@@ -888,44 +646,30 @@ function init3D() {
     window.addEventListener('resize', onWindowResize, false);
 }
 
-// --- ROCKET SCIENCE FIX: WIDE ANGLE + TILT DOWN ---
 function applyFisheyeEffect(geometry) {
     geometry.computeBoundingBox();
     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-    
     const positionAttribute = geometry.attributes.position;
     const normalAttribute = geometry.attributes.normal;
-    
     const p = new THREE.Vector3();
     const n = new THREE.Vector3();
     const sphereNormal = new THREE.Vector3();
 
-    // --- SETTINGS ---
     const tiltY = -0.25; 
     const curvature = 0.1;
 
     for (let i = 0; i < positionAttribute.count; i++) {
         p.fromBufferAttribute(positionAttribute, i);
         n.fromBufferAttribute(normalAttribute, i);
-
-        // A. Calculate the "Wide Angle" Curve
         sphereNormal.subVectors(p, center).normalize();
-
-        // B. Apply the Curve to the Normal
         n.lerp(sphereNormal, curvature).normalize();
-
-        // C. Apply the Tilt ON TOP of the Curve
-        // We gently push the normal downwards
         n.y += tiltY;
         n.normalize();
-
         normalAttribute.setXYZ(i, n.x, n.y, n.z);
     }
-    
     geometry.attributes.normal.needsUpdate = true;
 }
 
-// --- MAIN LOOP ---
 function animate3D() {
     requestAnimationFrame(animate3D);
 
@@ -952,7 +696,6 @@ function animate3D() {
     if (currentWrapper && currentModel) {
         rotVelocity.x *= 0.85;
         rotVelocity.y *= 0.85;
-
         currentModel.rotation.y += rotVelocity.x;
         currentModel.rotation.x += rotVelocity.y;
 
@@ -981,13 +724,11 @@ function animate3D() {
 
 function updatePositionWithRaycaster(element) {
     if (!camera || !element || !raycaster) return;
-
     const rect = element.getBoundingClientRect();
     if (rect.width === 0) return;
 
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-
     const mouse = new THREE.Vector2();
     mouse.x = (centerX / window.innerWidth) * 2 - 1;
     mouse.y = -(centerY / window.innerHeight) * 2 + 1;
@@ -995,9 +736,7 @@ function updatePositionWithRaycaster(element) {
     raycaster.setFromCamera(mouse, camera);
     raycaster.ray.intersectPlane(mathPlane, planeIntersectPoint);
 
-    if (currentWrapper) {
-        currentWrapper.position.copy(planeIntersectPoint);
-    }
+    if (currentWrapper) currentWrapper.position.copy(planeIntersectPoint);
 }
 
 function loadModel(filename) {
@@ -1007,53 +746,38 @@ function loadModel(filename) {
     }
     loader.load(ASSET_PATH + filename, (gltf) => {
         const m = gltf.scene;
-
-        // --- 1. CENTER GEOMETRY ---
         const box = new THREE.Box3().setFromObject(m);
         const center = box.getCenter(new THREE.Vector3());
         m.position.sub(center); 
-
-        // --- 2. APPLY FISHEYE TO MESHES ---
         m.traverse(c => {
             if (c.isMesh) {
-                // Ensure geometry is unique so we don't warp the cached version repeatedly
                 c.geometry = c.geometry.clone();
-                
-                // This is the magic. It bends the light.
                 applyFisheyeEffect(c.geometry);
             }
         });
-
         modelCache[filename] = m;
         const group = new THREE.Group();
         group.add(m.clone());
-        
         spawn(group); 
     });
 }
 
 function spawn(model) {
     if (currentWrapper) scene.remove(currentWrapper);
-
     currentWrapper = new THREE.Group();
     scene.add(currentWrapper);
-
     currentModel = model;
-
     currentModel.rotation.set(0, Math.PI / 2, 0);
-
     currentWrapper.add(currentModel);
     currentWrapper.lookAt(camera.position);
-
     currentScale = 0;
     currentWrapper.scale.set(0, 0, 0);
     rotVelocity = { x: 0, y: 0 };
-
     updatePositionWithRaycaster(activeDot);
     targetScale = MODEL_SCALE;
 }
 
-// --- INTERACTIONS (Kept original) ---
+// 3D Input Listeners
 window.addEventListener('mousedown', (e) => {
     if (currentScale > 0.1) {
         isDragging = true;
@@ -1061,11 +785,7 @@ window.addEventListener('mousedown', (e) => {
         rotVelocity = { x: 0, y: 0 };
     }
 });
-
-window.addEventListener('mouseup', () => {
-    isDragging = false;
-});
-
+window.addEventListener('mouseup', () => isDragging = false);
 window.addEventListener('mousemove', (e) => {
     if ((isHovering || isDragging) && currentModel) {
         const deltaX = e.clientX - previousMouse.x;
@@ -1075,20 +795,12 @@ window.addEventListener('mousemove', (e) => {
     }
     previousMouse = { x: e.clientX, y: e.clientY };
 });
-
 document.addEventListener('mouseover', (e) => {
     if (e.target.classList.contains('dot')) {
-        if (closeTimer) {
-            clearTimeout(closeTimer);
-            closeTimer = null;
-        }
+        if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
         previousMouse = { x: e.clientX, y: e.clientY };
-
         if (isDragging) return;
-        if (activeDot === e.target) {
-            isHovering = true;
-            return;
-        }
+        if (activeDot === e.target) { isHovering = true; return; }
 
         const file = e.target.dataset.glb;
         if (file) {
@@ -1100,12 +812,19 @@ document.addEventListener('mouseover', (e) => {
         }
     }
 });
-
 document.addEventListener('mouseout', (e) => {
     if (e.target.classList.contains('dot')) {
-        closeTimer = setTimeout(() => {
-            isHovering = false;
-        }, CLOSE_DELAY);
+        closeTimer = setTimeout(() => { isHovering = false; }, CLOSE_DELAY);
+    }
+});
+
+document.addEventListener('mousedown', (e) => {
+    // 1. Safety check: Ensure triggerPulse exists
+    if (typeof triggerPulse === 'function') {
+        // 2. Only fire for mouse (touch handles itself)
+        // Note: e.detail > 1 detects double clicks if needed, 
+        // but simple mousedown is snappiest.
+        triggerPulse(e.clientX, e.clientY);
     }
 });
 
@@ -1122,15 +841,12 @@ function onWindowResize() {
 }
 
 /* =========================================
-   10. TOUCH LOGIC (Final: Tap vs Drag)
+   9. TOUCH LOGIC (Mobile Tap vs Drag)
    ========================================= */
-
-let touchStartTime = 0;
-let interactionType = null; // 'new-dot', 'existing-model', or 'empty'
+let interactionType = null;
 let didTouchHitDot = false;
 let hasMoved = false;
 
-// Helper: Find closest dot
 function getClosestDot(x, y) {
     let closest = null;
     let minDist = Infinity;
@@ -1142,31 +858,22 @@ function getClosestDot(x, y) {
     return minDist < 60 ? closest : null; 
 }
 
-// Helper: Create pulse
-// A. The Pulse Function (Self-Cleaning)
 function triggerPulse(x, y) {
     const pulse = document.createElement('div');
     pulse.className = 'touch-pulse';
     pulse.style.left = x + 'px';
     pulse.style.top = y + 'px';
     document.body.appendChild(pulse);
-
-    // Completely autonomous cleanup
     pulse.addEventListener('animationend', () => pulse.remove());
-    setTimeout(() => { if(pulse.parentNode) pulse.remove(); }, 600);
 }
 
-// B. The Listener Update
 window.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
-    
-    // 1. Fire pulse immediately on every single touch
     triggerPulse(t.clientX, t.clientY);
-
     hasMoved = false;
     const target = getClosestDot(t.clientX, t.clientY);
 
-    // 2. The logic for 3D models
+    // 1. 3D Model Dot
     if (target && target.element.dataset.glb) {
         didTouchHitDot = true;
         e.preventDefault(); 
@@ -1184,22 +891,27 @@ window.addEventListener('touchstart', (e) => {
         isDragging = true;
         previousMouse = { x: t.clientX, y: t.clientY };
         rotVelocity = { x: 0, y: 0 };
-    } else {
+    } 
+    // 2. Audio Dot
+    else if (target && target.hasAudio) {
+        didTouchHitDot = true;
+        e.preventDefault();
+        
+        if (currentAudioDot === target) interactionType = 'audio-open';
+        else interactionType = 'audio-play';
+        activeDot = target.element; 
+    }
+    // 3. Empty Space
+    else {
         interactionType = 'empty';
     }
 }, { passive: false });
 
-
-// --- TOUCH MOVE ---
 window.addEventListener('touchmove', (e) => {
     if (isDragging) {
         const dx = e.touches[0].clientX - previousMouse.x;
         const dy = e.touches[0].clientY - previousMouse.y;
-        
-        // If moved more than 7 pixels, it's a drag, not a tap
-        if (Math.hypot(dx, dy) > 7) {
-            hasMoved = true;
-        }
+        if (Math.hypot(dx, dy) > 7) hasMoved = true;
 
         if (currentModel && isHovering) {
             e.preventDefault(); 
@@ -1210,52 +922,65 @@ window.addEventListener('touchmove', (e) => {
     }
 }, { passive: false });
 
-
-// --- TOUCH END ---
 window.addEventListener('touchend', (e) => {
-    // We only preventDefault if we actually hit a dot area to avoid breaking 
-    // standard UI buttons like "About" or "Archive"
-    if (didTouchHitDot) {
-        e.preventDefault(); 
-    }
-
+    if (didTouchHitDot) e.preventDefault();
     const t = e.changedTouches[0]; 
 
-    // CASE 1: Tap on the model that was already open
-    if (interactionType === 'existing-model') {
+    // AUDIO LOGIC
+    if (interactionType === 'audio-play') {
         if (!hasMoved) {
-            // TAP -> Open Project
+            if (currentAudioDot && currentAudioDot.audio) {
+                currentAudioDot.audio.pause();
+                currentAudioDot.audio.currentTime = 0;
+            }
+            const dotData = activeDots.find(d => d.element === activeDot);
+            if (dotData && dotData.audio) {
+                dotData.audio.volume = 1.0;
+                dotData.audio.play();
+                currentAudioDot = dotData;
+            }
+        }
+    }
+    else if (interactionType === 'audio-open') {
+        if (!hasMoved) {
+            if (currentAudioDot && currentAudioDot.audio) currentAudioDot.audio.pause();
+            const dotData = activeDots.find(d => d.element === activeDot);
+            if (dotData && dotData.folder) openProject(dotData.folder);
+            currentAudioDot = null;
+        }
+    }
+
+    // 3D LOGIC
+    else if (interactionType === 'existing-model') {
+        if (!hasMoved) {
             triggerPulse(t.clientX, t.clientY);
             if (activeDot && activeDot.dataset.folder) {
                 openProject(activeDot.dataset.folder);
-                // Close 3D after opening project
                 isHovering = false;
-                if (activeDot) activeDot.classList.remove('is-active-3d');
+                activeDot.classList.remove('is-active-3d');
             }
         } 
-        // If hasMoved is true here, they were just rotating. Keep it open.
     } 
-    
-    // CASE 2: Interaction with a new dot
     else if (interactionType === 'new-dot') {
         if (hasMoved) {
-            // DRAG RELEASE -> They peeked and dragged, so CLOSE it.
             isHovering = false;
             if (activeDot) {
                 activeDot.classList.remove('is-active-3d');
                 activeDot = null;
             }
         } else {
-            // TAP -> Opened it for the first time. Keep it open.
             triggerPulse(t.clientX, t.clientY);
             isHovering = true;
         }
     } 
 
-    // CASE 3: Tapped or dragged on empty space
+    // EMPTY SPACE
     else if (interactionType === 'empty') {
         if (!hasMoved) {
-            // TAP ELSEWHERE -> Close everything
+            if (currentAudioDot && currentAudioDot.audio) {
+                currentAudioDot.audio.pause();
+                currentAudioDot = null;
+            }
             isHovering = false;
             if (activeDot) {
                 activeDot.classList.remove('is-active-3d');
@@ -1264,9 +989,16 @@ window.addEventListener('touchend', (e) => {
         }
     }
 
-    // Reset all flags for the next touch
     isDragging = false;
     interactionType = null;
     didTouchHitDot = false;
     hasMoved = false; 
 }, { passive: false });
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        activeDots.forEach(d => {
+            if (d.audio && !d.audio.paused) d.audio.pause();
+        });
+    }
+});

@@ -21,7 +21,7 @@ body {
 
 
 /* Hide System Cursor Globally */
-body, header, h1, button, a, div, th, td {
+*, *::before, *::after, body, html {
     cursor: none !important; 
 }
 
@@ -31,8 +31,8 @@ body, header, h1, button, a, div, th, td {
     top: 0; left: 0;
     width: 100vw; height: 100vh;
     z-index: 6 !important;        /* FORCE BOTTOM */
-    opacity: 0 !important;        /* FORCE INVISIBLE INITIALLY */
-    filter: blur(10px) !important; /* FORCE BLUR */
+    opacity: 0 ;        /* FORCE INVISIBLE INITIALLY */
+    filter: blur(10px) ; /* FORCE BLUR */
     transition: opacity 2s ease, filter 2s ease !important;
     pointer-events: none !important;
 }
@@ -55,6 +55,7 @@ body, header, h1, button, a, div, th, td {
 
 #custom-cursor.hover-active {
     box-shadow: 0 0 3px 1px rgba(255, 0, 0);
+    pointer-events: none;
 }
 
 
@@ -128,8 +129,8 @@ body, header, h1, button, a, div, th, td {
 
 .touch-pulse {
     position: fixed;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     background: rgba(255, 0, 0, 0.7); /* Your red dot */
     border-radius: 50%;
     pointer-events: none;
@@ -147,11 +148,21 @@ body, header, h1, button, a, div, th, td {
 /* =========================================
    3. HEADER (Fixed Center)
    ========================================= */
+
+.header-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center; /* Aligns text with the dot */
+    justify-content: center;
+    gap: 15px; /* Space between name and dot */
+    pointer-events: auto; /* Ensures clickable */
+}   
+
 header {
     position: fixed;
     top: 50px; left: 50%;
     transform: translate(-50%, -50%); 
-    max-width: 90%;
+    max-width: 80%;
     width: max-content;
     z-index: 10001 !important; /* FIX: Must be higher than loading-screen (9999) */
     pointer-events: none;
@@ -165,11 +176,51 @@ header {
     margin: 0;
     cursor: pointer;
     background: none;
-    padding: 10px 20px;
+    padding: 10px 4px;
     pointer-events: auto;
     transition: transform 0.3s ease;
 }
 .title:hover { transform: scale(1.05); }
+
+/* --- The Red Pulsating Dot --- */
+#fixed-archive-dot {
+    width: 12px;
+    height: 12px;
+    background-color: red; /* Red Dot */
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    animation: pulseGlow 4s infinite ease-in-out;
+    transition: box-shadow 0.3s ease;
+}
+#fixed-archive-dot:hover {
+    box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1);
+    animation: none;
+}
+
+/* The Invisible Hit Area (Easier to click) */
+#fixed-archive-dot::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 40px;
+    background: transparent;
+    border-radius: 50%;
+    
+}
+
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1);
+    }
+    50% {
+        box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1);
+    }
+}
 
 /* =========================================
    4. SCENE & PROJECT DOTS
@@ -218,10 +269,9 @@ header {
 }   
 
 /* =========================================
-   3D TRIGGER INDICATOR (The "Sound Wave")
+   5. DOT SPECIFICITIES
    ========================================= */
 
-/* 1. The Ripple Circle */
 .dot.has-3d::after {
     content: '';
     position: absolute;
@@ -229,77 +279,81 @@ header {
     left: 50%;
     width: 100%;
     height: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.4); /* Subtle grey ring */
     border-radius: 50%;
     transform: translate(-50%, -50%);
     z-index: -1; /* Place it behind the dot */
     
     /* The Animation */
-    animation: sonarWave 2s infinite ease-out;
+    animation: modelGlow 4s infinite ease-out;
     pointer-events: none; /* Ensure it doesn't block clicks */
 }
 
-/* 2. The Animation Keyframes */
-@keyframes sonarWave {
+@keyframes modelGlow {
     0% {
-        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 16px 8px rgba(0, 47, 167, 1);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5);
+    }
+}
+
+.dot.has-audio {
+    /* Ensure the dot itself stays on top */
+    z-index: 10; 
+}
+
+/* 2. The Sonar Ring (Defined Large for Sharpness) */
+.dot.has-audio::after {
+    content: '';
+    position: absolute;
+    top: 50%; 
+    left: 50%;
+    /* We make it 5x larger than the dot (12px * 5 = 60px) */
+    width: 60px; 
+    height: 60px;
+    
+    /* Center it (using margins because we animate transform) */
+    margin-top: -30.5px; 
+    margin-left: -30.5px;
+    
+    border: 1px solid var(--color-blue); 
+    border-radius: 50%;
+    z-index: -1;
+    pointer-events: none;
+    
+    /* Start invisible/small */
+    opacity: 0;
+    transform: scale(0.2); /* Starts matching the dot size */
+    
+    animation: audioSonar 1.5s infinite ease-out;
+}
+
+/* 3. The Animation (Scale from 0.2 to 1) */
+@keyframes audioSonar {
+    0% {
+        transform: scale(0.2); /* Matches the dot size (12px) */
+        opacity: 0;
+        border-width: 2px; /* Start slightly thick */
+    }
+    50% {
         opacity: 0.8;
     }
     100% {
-        transform: translate(-50%, -50%) scale(2.5); /* Expands to 2.5x size */
-        opacity: 0; /* Fades out completely */
+        transform: scale(0.8); /* Expands to full 60px size */
+        opacity: 0;
+        border-width: 0px; /* Fades to thin */
     }
+
 }
 
-/* Optional: Pause the wave when you actually hover it */
-.dot.has-3d:hover::after {
-    animation: none;
-    border: none;
+/* Optional: Make the dot slightly different to indicate it's special */
+.dot.has-audio {
+    box-shadow: 0 0 5px var(--color-blue);
 }
 
-/* =========================================
-   5. THE GLOWING ARCHIVE DOT
-   ========================================= */
-#archive-trigger {
-    position: absolute;
-    width: 15px; height: 15px;
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 100;
-    pointer-events: auto;
-    background-color: var(--color-blue);
-    animation: pulseGlow 3s infinite ease-in-out;
-    transform: translate(-50%, -50%);
-    will-change: box-shadow, transform;
-}
-
-#archive-trigger:hover {
-    animation: pulseGlow 1.5s infinite ease-in-out;
-}
-
-#archive-trigger::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 40px; /* Large hit area for the main trigger */
-    height: 40px;
-    transform: translate(-50%, -50%);
-    background: transparent;
-    border-radius: 50%;
-}
-
-@keyframes pulseGlow {
-    0% {
-        box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1);
-    }
-    50% {
-        box-shadow: 0 0 30px 10px rgba(0, 47, 167, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1);
-    }
-}
 
 /* =========================================
    6. UNIFIED POPUP SYSTEM
@@ -466,8 +520,8 @@ header {
     padding: 4px 14px; border-radius: 20px; cursor: pointer;
     transition: all 0.2s ease-in-out; 
 }
-.tag-btn.active { background: #000; color: #fff; border-color: #000; }
-.tag-btn:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); }
+.tag-btn.active {  box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); color: black; }
+.tag-btn:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.2) }
 
 
 
