@@ -358,71 +358,55 @@ header {
 /* =========================================
    6. UNIFIED POPUP SYSTEM
    ========================================= */
+
 /* The Background Overlay */
 .overlay {
     display: none; 
     position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(255,255,255,0.00);
+    background: rgba(255,255,255,0.00); /* Fully transparent background */
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     
-    /* Unified Alignment: Top-Down */
+    /* Alignment */
     align-items: flex-start; 
     justify-content: center;
+    z-index: 100; /* Default Z-Index */
 }
 
+/* Layering Management */
 .layer-middle { z-index: 100; }
 .layer-top    { z-index: 200; }
 .layer-about  { z-index: 250; }
 
 /* The Shared Panel Logic */
 .popup-panel {
-    background: rgba(255,255,255,0.1); /* Your glass opacity */
-    padding: 40px; /* Unified padding */
+    height: 100vh;
+    background: rgba(255,255,255,0.1); /* Glass opacity */
     position: relative;
     opacity: 0; 
     animation: fadeIn 0.3s forwards;
-    
-    /* Unified Top Spacing */
-    margin-top: 10vh; 
-    
     display: flex;
     flex-direction: row;
+    margin-top: 8%;
 }
-
-.popup-content {
-    flex: 1; /* Takes remaining space */
-    width: 50%; /* Default width when image is present */
-}
-
-#project-overlay.no-image .popup-content {
-    width: 100% !important;
-    max-width: 1000px; /* Optional: keeps text from getting too wide to read */
-    margin: 0 auto;    /* Centers the text block */
-}
-
-#project-overlay.no-image #carousel-image {
-    display: none;
-}
-
-
 
 @keyframes fadeIn { to { opacity: 1; } }
 
-/* Size Variations based on your preferences */
+/* Panel Size Variations */
 .size-archive {
     width: 85%; 
     max-height: 80vh;
     overflow-y: hidden;
     display: flex;       
-    flex-direction: column; /* This forces tags to the TOP */
+    flex-direction: column; 
+    margin-top: 5%;
 }
 
 .size-project {
     width: 85%; 
     max-height: 90vh; 
-    padding: 40px; /* Slight override for projects */
-    overflow-y: auto;
+    overflow-y: hidden; /* Scroll handled by #project-scroll-container */
+    margin-top: 5%;
 }
 
 .size-about {
@@ -433,8 +417,9 @@ header {
     overflow: hidden; 
     background: rgba(255,255,255,0.1); 
 }
+
 #bio-container {
-    padding-top: 10px;
+    padding: 50px;
     font-size: 1rem;
     line-height: 1.6;
     color: var(--color-text);
@@ -449,27 +434,24 @@ header {
     width: 12px; height: 12px;
     border-radius: 50%;
     cursor: pointer; 
-    font-size: 0; /* Hide text */
+    font-size: 0; 
     transition: all 0.2s ease-in-out; 
-    z-index: 20;
+    z-index: 200; /* Ensure it's always on top */
 }
 .close-btn:hover { 
     box-shadow: 0 0 10px 2px rgba(0, 47, 167, 1);
 }
-
 .close-btn::before {
     content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 40px; /* Much larger invisible area for closing */
-    height: 40px;
+    position: absolute; top: 50%; left: 50%;
+    width: 40px; height: 40px;
     transform: translate(-50%, -50%);
     background: transparent;
 }
 
+
 /* =========================================
-   7. CONTENT SPECIFICS
+   7. CONTENT SPECIFICS (Archive & Tags)
    ========================================= */
 
 /* --- ARCHIVE TABLE --- */
@@ -486,6 +468,7 @@ header {
     table-layout: fixed;
 }
 
+/* Column Widths */
 #artist-database th:nth-child(1) { width: 7%; }  /* ID */
 #artist-database th:nth-child(2) { width: 28%; } /* Title */
 #artist-database th:nth-child(3) { width: 10%; } /* Year */
@@ -514,17 +497,14 @@ header {
 .project-row.has-folder:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); }
 
 /* --- TAGS --- */
-#tag-bar { display: flex; gap: 8px; ; margin-bottom: 20px; flex-wrap: wrap; }
+#tag-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 .tag-btn { 
     background: transparent; border: 1px solid #e0e0e0; 
     padding: 4px 14px; border-radius: 20px; cursor: pointer;
     transition: all 0.2s ease-in-out; 
 }
-.tag-btn.active {  box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); color: black; }
+.tag-btn.active { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); color: black; }
 .tag-btn:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.2) }
-
-
-
 
 /* --- SCROLLBAR --- */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -537,92 +517,131 @@ header {
 }
 ::-webkit-scrollbar-thumb:hover { background-color: var(--color-blue); }
 
+
 /* =========================================
-   8. PROJECT LAYOUT (SCROLL & RESPONSIVE)
+   8. PROJECT LAYOUT (FULL PAGE SNAP)
    ========================================= */
 
 /* 1. SCROLL CONTAINER */
 #project-scroll-container {
     width: 100%;
-    height: 100%;
+    height: 100%; /* Changed from 100vh to 100% to fit inside the panel */
+    
+    /* THE MAGIC: Enforce snapping */
     overflow-y: scroll;
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y mandatory; 
     scroll-behavior: smooth;
+    
     scrollbar-width: none; 
     -ms-overflow-style: none;
-    padding: 15px;
+    
+    /* Remove default padding here so snap works perfectly at edges */
+    padding: 0; 
 }
 #project-scroll-container::-webkit-scrollbar { display: none; }
 
-/* 2. PROJECT SECTIONS */
+/* 2. MAIN SNAP SECTIONS (Desktop: The "Pages") */
 .project-section {
     position: relative;
     width: 100%;    
-    height: 100%; 
-    display: flex; 
-    justify-content: center;
-    align-items: center;
+    height: 100%;   /* Changed from 100vh. Fills the available panel space exactly */
+    
+    /* Snap Logic */
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    box-sizing: border-box;
+    
+    display: flex; 
+    justify-content: center;
+    align-items: flex-start;
     overflow: hidden;
+    box-sizing: border-box;
+    
+    /* Optional: padding inside the slide */
+    padding: 40px;
+    padding-bottom: 5%;
 }
 
-/* 3. TOP SECTION: SPLIT LAYOUT */
+/* 3. TOP SECTION: SPLIT LAYOUT (Desktop) */
 .project-split-layout {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap; /* Allows stacking if space is too small */
+    flex-direction: row; 
+    align-items: flex-start; /* Vertically center content */
+    justify-content: center;
     width: 100%;
     height: 100%; 
-    gap: 30px;
+    gap: 40px; 
 }
 
+/* --- LEFT: IMAGE (The "Master" Sizer) --- */
 .project-visuals {
-    flex: 1 1 700px;
+    /* Do NOT set a fixed width or flex-grow here. 
+       We want the box to shrink-wrap the image. */
+    height: 100%; 
     display: flex;
     align-items: center; 
     justify-content: center;
-    position: relative;
+    
+    /* Safety: Prevent image from taking 100% width and pushing text off */
+    max-width: 70%; 
 }
 
-.project-info {
-    flex: 1 1 350px; /* If this column gets smaller than 350px, it wraps below */
-    display: flex;
-    flex-direction: column;
-    justify-content: top; 
-}
-
-/* IMAGE CONTAINER */
 #poster-container {
-    width: auto;
-    height: auto;
+    /* Allow container to fit the content */
+    width: auto; 
+    height: 100%;
     display: flex;
-    justify-content: center; 
     align-items: center;
 }
 
 #poster-image {
-    width: 100%;         
-    height: auto;
-    max-height: 100%;       
-    aspect-ratio: 1 / 1;   
-    object-fit: cover;
+    /* 1. Fit the Height First */
+    height: 100%;
+    max-height: 100%; 
+    
+    /* 2. Let Width Adjust Naturally (Aspect Ratio) */
+    width: auto;  
+    max-width: 100%;
+    
+    /* 3. Ensure no cropping */
+    object-fit: contain; 
+    
     display: block;
-    opacity: 1;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* LINK HOVER EFFECTS */
-.project-visuals.has-link #poster-image {
-    cursor: pointer;
-}
-
+.project-visuals.has-link #poster-image { cursor: pointer; }
 .project-visuals.has-link:hover #poster-image {
     box-shadow: 0 0 15px rgba(0, 47, 167, 0.6);
 }
 
-/* 4. INDICATOR ARROWS (The "Scroll Down" Cue) */
+/* --- RIGHT: TEXT (Fills remaining space) --- */
+.project-info {
+    flex: 1; /* "Take the rest of the space" */
+    
+    /* Logic: If image is huge, text gets small. If image is small, text gets wide. */
+    min-width: 300px; /* But don't let text get smaller than this */
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    
+    /* Scroll text internally if it's too long for the page */
+    max-height: 100%; 
+    overflow-y: auto; 
+    padding-right: 10px; 
+}
+
+/* 4. BOTTOM SECTION */
+#section-bottom {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 10%;
+}
+
+/* 5. NAVIGATION & INDICATORS */
 .scroll-indicator {
     position: absolute;
     bottom: 20px;
@@ -634,40 +653,12 @@ header {
     cursor: pointer;
     z-index: 10;
 }
-
 @keyframes bounce {
     0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);}
     40% {transform: translateX(-50%) translateY(-10px);}
     60% {transform: translateX(-50%) translateY(-5px);}
 }
 
-/* 4. BOTTOM SECTION */
-#section-bottom {
-    display: flex;
-    flex-direction: column;
-}
-
-.bottom-website-image {
-    max-width: 95%;
-    max-height: 90vh;
-    object-fit: contain;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
-}
-
-.bottom-website-image.is-linkable:hover {
-    box-shadow: 0 0 30px rgba(0, 47, 167, 0.6);
-}
-
-.video-container {
-    width: 100%;
-    max-width: 1000px;
-    aspect-ratio: 16 / 9;
-    background: black;
-}
-.video-container iframe { width: 100%; height: 100%; }
-
-/* 5. NAVIGATION ARROWS (Kept as you had them) */
 .carousel-nav {
     position: absolute;
     top: 50%;
@@ -680,37 +671,162 @@ header {
     padding: 0 20px;
     z-index: 10;
     opacity: 0;
-    transition: opacity 0.2s, transform 0.2s;
+    transition: opacity 0.2s;
 }
 .project-visuals:hover .carousel-nav { opacity: 1; }
 .carousel-nav.prev { left: 0; }
 .carousel-nav.next { right: 0; }
 
-/* 6. MOBILE LAYOUT */
-@media (max-width: 768px) {
-    #project-scroll-container {
-        scroll-snap-type: none;
-        height: auto;
-    }
-    .project-section {
-        height: auto;
-        min-height: 100vh;
-        padding: 60px 20px; /* Minimal padding for mobile visibility */
-        display: block;
-    }
-    .project-split-layout {
-        flex-direction: column;
-        gap: 30px;
-    }
-    .project-visuals {
-        height: auto;
-        width: 100%;
-    }
-    #poster-image {
-        width: 100%; /* Take full width on mobile */
-    }
-    .carousel-nav { opacity: 1; }
+.bottom-website-image {
+    max-width: 95%;
+    max-height: 90vh; /* Use vh here because this section is full height */
+    object-fit: contain;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
+.video-container {
+    width: 90%;
+    max-width: 1000px;
+    aspect-ratio: 16 / 9;
+    background: black;
+}
+.video-container iframe { width: 100%; height: 100%; }
+
+/* =========================================
+   MOBILE LAYOUT (Vertical)
+   ========================================= */
+@media (max-width: 768px) {
+    /* Reset Parent Height */
+    .project-section {
+        height: auto; 
+        display: block; 
+        padding: 0; 
+        overflow: visible;
+        scroll-snap-align: none; 
+    }
+
+    .project-split-layout {
+        display: block; 
+        width: 100%;
+        height: auto;
+    }
+
+    /* SNAP POINT A: The Image */
+    .project-visuals {
+        width: 100%;
+        height: 100vh; /* Here we want vh because on mobile it's a full screen slide */
+        max-width: none;
+        
+        scroll-snap-align: start; 
+        scroll-snap-stop: always;
+        
+        padding: 40px 20px;
+        box-sizing: border-box;
+    }
+
+    #poster-image {
+        /* Mobile: Fit width, let height float */
+        width: 100%;
+        height: auto;
+        max-height: 80vh; 
+        object-fit: contain;
+    }
+
+    /* SNAP POINT B: The Text */
+    .project-info {
+        width: 100%;
+        height: 100vh; 
+        
+        scroll-snap-align: start; 
+        scroll-snap-stop: always;
+        
+        padding: 40px 20px;
+        box-sizing: border-box;
+        
+        justify-content: center; 
+    }
+
+    /* SNAP POINT C: The Bottom Section */
+    #section-bottom {
+        height: 100vh;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    
+    .carousel-nav { opacity: 1; font-size: 2rem; }
+    .scroll-indicator { display: block; bottom: 10vh; } 
+}
+
+/* =========================================
+   MOBILE LAYOUT (THE 3-STEP SNAP)
+   ========================================= */
+@media (max-width: 768px) {
+    /* 1. Reset Parent Height */
+    .project-section {
+        height: auto; 
+        display: block; 
+        padding: 0; /* Remove padding so full-screen works */
+        overflow: visible;
+        
+        /* Disable snapping on the wrapper, we snap the children instead */
+        scroll-snap-align: none; 
+    }
+
+    .project-split-layout {
+        display: block; /* Stack them */
+        width: 100%;
+        height: auto;
+    }
+
+    /* 2. SNAP POINT A: The Image (Page 1) */
+    .project-visuals {
+        width: 100%;
+        height: 100vh; /* Full Screen */
+        
+        scroll-snap-align: start; /* Snap here */
+        scroll-snap-stop: always;
+        
+        padding: 40px 20px;
+        box-sizing: border-box;
+    }
+
+    #poster-image {
+        width: 100%;
+        height: auto;
+        max-height: 80vh; 
+        object-fit: contain;
+    }
+
+    /* 3. SNAP POINT B: The Text (Page 2) */
+    .project-info {
+        width: 100%;
+        height: 100vh; /* Full Screen */
+        
+        scroll-snap-align: start; /* Snap here */
+        scroll-snap-stop: always;
+        
+        padding: 40px 20px;
+        box-sizing: border-box;
+        
+        justify-content: center; /* Center text in the middle of screen */
+        max-width: none;
+    }
+
+    /* 4. SNAP POINT C: The Bottom Section (Page 3) */
+    #section-bottom {
+        height: 100vh; /* Ensure bottom section is also a full page */
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    
+    /* Show nav arrows on mobile */
+    .carousel-nav { opacity: 1; font-size: 2rem; }
+    .scroll-indicator { display: block; bottom: 10vh; } 
+}
+
 
 /* =========================================
    HANDLE NO-IMAGE LAYOUT (Text Only)
@@ -723,27 +839,60 @@ header {
 
 /* 2. Center the layout container */
 #project-overlay.no-image .project-split-layout {
-    justify-content: center;
-    max-width: 100%; /* Optional: Restrict width so text is readable */
-    gap: 0;
+    display: block;
+    max-width: 100%; 
+    text-align: center; /* Optional: centers the text block itself */
 }
 
 /* 3. Expand the text column to fill the space */
 #project-overlay.no-image .project-info {
-    flex: 0 0 100%;   /* Force full width */
     width: 100%;
-    padding-right: 0; /* Remove the gap meant for the image */
-    
-    /* Optional: Center align text for text-only pages */
+
+    align-items: flex-start; 
     text-align: left; 
-    align-items: left;
 }
 
-/* Fix alignment of the meta text (Year/Medium) if you center everything */
-#project-overlay.no-image .project-info .meta {
-    justify-content: center;
+/* =========================================
+   PROJECT NAVIGATION (NEXT ARROW)
+   ========================================= */
+.project-nav-btn {
+    position: fixed;
+    top: 50%;
+    right: 30px; /* Sits on the right edge */
+    transform: translateY(-50%);
+    
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 200; /* Above images */
+    
+    font-size: 3rem; /* Big arrow */
+    color: var(--color-blue);
+    opacity: 0.5;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    
+    /* Hide on mobile if it covers content, or make smaller */
+}
+.project-nav-btn.prev-btn {
+    right: auto; /* Unset right */
+    left: 20px;  /* Move to left */
 }
 
+.project-nav-btn:hover {
+    opacity: 1;
+    transform: translateY(-50%) translateX(5px); /* Subtle nudging animation */
+}
+
+/* Hide on Mobile to avoid clutter? Or keep small */
+@media (max-width: 768px) {
+    .project-nav-btn {
+        right: 10px;
+        font-size: 2rem;
+        background: rgba(255,255,255,0.2); /* faint background for visibility */
+        border-radius: 50%;
+        padding: 10px;
+    }
+}
 
 /* =========================================
    9. LOADING ANIMATION (Red Pulse)

@@ -327,6 +327,8 @@ function renderTable(data) {
         
         const row = document.createElement('tr');
         row.className = 'project-row';
+
+        if (project.folder) row.dataset.folder = project.folder;
         
         if (project.folder) {
             row.classList.add('has-folder'); 
@@ -530,6 +532,26 @@ function openProject(folderName) {
     }
 }
 
+// direction: 1 for Next, -1 for Previous
+function goToNextProject(direction = 1) {
+    const currentFolder = window.location.hash.replace('#', '');
+    if (!currentFolder) return;
+
+    const allRows = Array.from(document.querySelectorAll('.project-row'));
+    const visibleRows = allRows.filter(row => row.style.display !== 'none' && row.dataset.folder);
+
+    const currentIndex = visibleRows.findIndex(row => row.dataset.folder === currentFolder);
+
+    if (currentIndex !== -1) {
+        // Handle wrapping for both directions
+        let nextIndex = (currentIndex + direction) % visibleRows.length;
+        if (nextIndex < 0) nextIndex = visibleRows.length - 1; // Wrap around if going left from 0
+        
+        openProject(visibleRows[nextIndex].dataset.folder);
+    } else if (visibleRows.length > 0) {
+        openProject(visibleRows[0].dataset.folder);
+    }
+}
 function closeProject() {
     const projectOverlay = document.getElementById('project-overlay');
     const wasInArchive = projectOverlay.getAttribute('data-from-archive') === 'true';
