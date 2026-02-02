@@ -22,71 +22,74 @@
 
     <header>
         <div class="header-container">
-        <h1 class="title" onclick="openAbout()">anahit ghazaryan</h1>
-        <div id="fixed-archive-dot" onclick="openArchive()"></div>
+            <h1 class="title" onclick="openAbout()">anahit ghazaryan</h1>
+            <div id="fixed-archive-dot" onclick="openArchive()"></div>
         </div>
     </header>
     
     <div id="about-overlay" class="overlay layer-about">
-        <div class="popup-panel size-about">
-            <button class="close-btn" onclick="closeAbout()"></button>
-            <div id="bio-container" class="scroll-content"></div>
+        <div class="glass-card type-bio">
+            <button class="close-btn card-close" onclick="closeAbout()"></button>
+            
+            <div class="card-content scroll-content">
+                <div id="bio-container"></div>
+            </div>
         </div>
     </div>
 
     <div id="project-overlay" class="overlay layer-top">
-        <div class="popup-panel size-project">
-            <button class="close-btn fixed-close" onclick="closeProject()"></button>
-            <button class="project-nav-btn" onclick="goToNextProject()">&#10095;</button>
-            <button class="project-nav-btn next-btn" onclick="goToNextProject(1)">&#10095;</button>
-            <div id="project-scroll-container">
+        <div class="glass-card type-project">
+            <button class="close-btn card-close" onclick="closeProject()"></button>
 
-                <section class="project-section" id="section-top">
-                    <div class="project-split-layout">
-                        
-                        <div class="project-visuals">
-                            <div id="poster-container">
-                                <img id="poster-image" src="" alt="Project Image">
-                            </div>
+            <div class="project-grid">
+                
+                <div class="text-group">
+                    <div class="col-meta scroll-content">
+                        <h2 id="popup-title"></h2>
+                        <div class="meta-data">
+                            <p id="popup-year"></p>
+                            <p id="popup-place"></p>
+                            <p id="popup-inst"></p>
                         </div>
-
-                        <div class="project-info scroll-content">
-                            <h2 id="popup-title"></h2>
-                            <p id="popup-meta" class="meta"></p>
-                            <hr class="project-divider">
-                            <div id="popup-description"></div>
-                        </div>
-                        
                     </div>
-                    <div class="scroll-indicator">↓</div>
-                </section>
+                    <div class="col-desc scroll-content">
+                        <div id="popup-description"></div>
+                    </div>
+                </div>
 
-                <section class="project-section" id="section-bottom"></section>
+                <div class="col-visual" id="popup-visual-container"></div>
 
             </div>
+            
+            <button class="project-nav-btn prev-btn" onclick="goToNextProject(-1)">&#10094;</button>
+            <button class="project-nav-btn next-btn" onclick="goToNextProject(1)">&#10095;</button>
         </div>
     </div>
 
     <div id="archive-overlay" class="overlay layer-middle">
-        <div class="popup-panel size-archive">
-            <button class="close-btn" onclick="closeArchive()"></button>
-            <div class="filter-container">
-                <div id="tag-bar"></div>
-            </div>
-            <div class="database-wrapper">
-                <table id="artist-database">
-                    <thead>
-                        <tr>
-                            <th onclick="sortTable(0)">ID</th>
-                            <th onclick="sortTable(1)">Title</th>
-                            <th onclick="sortTable(2)">Year</th>
-                            <th onclick="sortTable(3)">Place</th>
-                            <th onclick="sortTable(4)">Institution</th>
-                            <th onclick="sortTable(5)">Collaborators</th>
-                        </tr>
-                    </thead>
-                    <tbody id="database-body"></tbody>
-                </table>
+        <div class="glass-card type-archive">
+            <button class="close-btn card-close" onclick="closeArchive()"></button>
+            
+            <div class="archive-layout">
+                <div class="filter-container">
+                    <div id="tag-bar"></div>
+                </div>
+                
+                <div class="database-wrapper scroll-content">
+                    <table id="artist-database">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">ID</th>
+                                <th onclick="sortTable(1)">Title</th>
+                                <th onclick="sortTable(2)">Year</th>
+                                <th onclick="sortTable(3)">Place</th>
+                                <th onclick="sortTable(4)">Institution</th>
+                                <th onclick="sortTable(5)">Collaborators</th>
+                            </tr>
+                        </thead>
+                        <tbody id="database-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

@@ -288,6 +288,54 @@ document.addEventListener('mousemove', (e) => {
    5. UI HELPER FUNCTIONS (Tags, Table, Nav)
    ========================================= */
 
+function sortTable(n) {
+    const table = document.getElementById("artist-database");
+    let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+    switching = true;
+    dir = "asc"; 
+
+    // Remove 'active-sort' class from all headers
+    const headers = table.getElementsByTagName("th");
+    for (let h of headers) h.classList.remove("active-sort");
+    // Add to current header
+    headers[n].classList.add("active-sort");
+
+    while (switching) {
+        switching = false;
+        rows = table.rows;
+        for (i = 1; i < (rows.length - 1); i++) {
+            shouldSwitch = false;
+            x = rows[i].getElementsByTagName("td")[n];
+            y = rows[i + 1].getElementsByTagName("td")[n];
+
+            let xVal = x.innerHTML.toLowerCase();
+            let yVal = y.innerHTML.toLowerCase();
+
+            // Check if numeric (for ID and Year)
+            if (!isNaN(parseFloat(xVal)) && !isNaN(parseFloat(yVal))) {
+                xVal = parseFloat(xVal);
+                yVal = parseFloat(yVal);
+            }
+
+            if (dir == "asc") {
+                if (xVal > yVal) { shouldSwitch = true; break; }
+            } else if (dir == "desc") {
+                if (xVal < yVal) { shouldSwitch = true; break; }
+            }
+        }
+        if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+            switchcount++;
+        } else {
+            if (switchcount == 0 && dir == "asc") {
+                dir = "desc";
+                switching = true;
+            }
+        }
+    }
+}
+
 function renderTags(data) {
     const tagBar = document.getElementById('tag-bar');
     if (!tagBar) return;
@@ -382,6 +430,29 @@ function openArchive() {
     window.location.hash = 'archive';
 }
 
+function handleArchiveFade() {
+    const wrapper = document.querySelector('.database-wrapper');
+    if (!wrapper) return;
+
+    const updateFade = () => {
+        const scrollPos = wrapper.scrollTop + wrapper.clientHeight;
+        const totalHeight = wrapper.scrollHeight;
+
+        // If we are more than 10px away from the bottom, show the fade
+        if (totalHeight - scrollPos > 10) {
+            wrapper.classList.add('is-faded');
+        } else {
+            wrapper.classList.remove('is-faded');
+        }
+    };
+
+    // Listen for scroll
+    wrapper.addEventListener('scroll', updateFade);
+    
+    // Run once immediately to check if the list is short (no scroll needed)
+    updateFade();
+}
+
 function closeArchive() {
     document.getElementById('archive-overlay').style.display = 'none';
     history.pushState("", document.title, window.location.pathname);
@@ -420,111 +491,155 @@ function closeAbout() {
 }
 
 /* =========================================
-   6. PROJECT OVERLAY & CONTENT
+   6. PROJECT OVERLAY & CONTENT (UPDATED)
    ========================================= */
+
+// Helper: Fix Google Drive Links
 function convertToDirectLink(url) {
-    if (url.includes("drive.google.com")) {
+    if (url && url.includes("drive.google.com")) {
         let id = "";
         if (url.includes("/d/")) id = url.split('/d/')[1].split('/')[0];
         else if (url.includes("id=")) id = url.split('id=')[1].split('&')[0];
-        
         if (id) return `https://lh3.googleusercontent.com/u/0/d/${id}=s2000`;
     }
     return url; 
 }
 
+// Helper: Carousel Builder (Logic from previous step)
+function initCarousel(container, images) {
+    container.innerHTML = ''; // Clear
+    
+    // Create Image
+    const imgElement = document.createElement('img');
+    imgElement.src = images[0];
+    imgElement.className = "visual-content carousel-img"; 
+    container.appendChild(imgElement);
+
+    // Create Invisible Hover Zones
+    const leftZone = document.createElement('div');
+    leftZone.className = "carousel-click-zone zone-left";
+    const rightZone = document.createElement('div');
+    rightZone.className = "carousel-click-zone zone-right";
+    container.appendChild(leftZone);
+    container.appendChild(rightZone);
+
+    // Logic
+    let currentIndex = 0;
+    
+    function updateImage() {
+        imgElement.style.opacity = 0.5;
+        setTimeout(() => {
+            imgElement.src = images[currentIndex];
+            imgElement.style.opacity = 1;
+        }, 200);
+    }
+    function goNext() { currentIndex = (currentIndex + 1) % images.length; updateImage(); }
+    function goPrev() { currentIndex = (currentIndex - 1 + images.length) % images.length; updateImage(); }
+
+    // Events
+    const cursor = document.getElementById('custom-cursor');
+    rightZone.addEventListener('mouseenter', () => cursor.classList.add('cursor-arrow-next'));
+    rightZone.addEventListener('mouseleave', () => cursor.classList.remove('cursor-arrow-next'));
+    rightZone.addEventListener('click', goNext);
+
+    leftZone.addEventListener('mouseenter', () => cursor.classList.add('cursor-arrow-prev'));
+    leftZone.addEventListener('mouseleave', () => cursor.classList.remove('cursor-arrow-prev'));
+    leftZone.addEventListener('click', goPrev);
+}
+
+
+// MAIN FUNCTION: OPEN PROJECT
 function openProject(folderName) {
     if (!folderName) return;
     const project = allProjectData.find(p => p.folder === folderName);
     
     if (project) {
+        // 1. Manage Overlays
         const archiveOverlay = document.getElementById('archive-overlay');
         const isArchiveOpen = (archiveOverlay && archiveOverlay.style.display === 'flex');
-
-        closeAllOverlays();
+        closeAllOverlays(); // Close others
         
         const projectOverlay = document.getElementById('project-overlay');
-        const scrollContainer = document.getElementById('project-scroll-container');
-        if (scrollContainer) scrollContainer.scrollTop = 0;
-
         if (isArchiveOpen) projectOverlay.setAttribute('data-from-archive', 'true');
         else projectOverlay.removeAttribute('data-from-archive');
 
         window.location.hash = folderName;
         
-        // Populate Text
-        const titleEl = document.getElementById('popup-title');
-        const metaEl = document.getElementById('popup-meta');
-        const descEl = document.getElementById('popup-description');
+        // 2. Populate Text Columns
+        const set = (id, txt) => { 
+            const el = document.getElementById(id); 
+            if(el) el.textContent = txt || ""; 
+        };
+        
+        set('popup-title', project.project_name);
+        set('popup-year', project.year);
+        set('popup-place', project.place); // Ensure your CSV has 'place' column or update this
+        set('popup-inst', project.institution); // Ensure your CSV has 'institution'
 
-        if (titleEl) titleEl.textContent = project.project_name;
-        if (metaEl) metaEl.textContent = `${project.year} — ${project.medium}`;
+        const descEl = document.getElementById('popup-description');
         if (descEl) descEl.innerHTML = (project.description || "").replace(/\n/g, '<br>');
 
-        // Populate Image
-        const imgElement = document.getElementById('poster-image');
-        const visualContainer = document.querySelector('.project-visuals');
-        projectOverlay.classList.remove('no-image');
-        if (visualContainer) visualContainer.classList.remove('has-link');
-        
-        let currentImages = [];
-        const keys = Object.keys(project);
-        const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
-        const rawImageString = imageKey ? project[imageKey] : null;
+        // 3. Populate Visual Column (The "Smart Logic")
+        const visualContainer = document.getElementById('popup-visual-container');
+        if (visualContainer) {
+            visualContainer.innerHTML = ''; // Clear old content
+            visualContainer.className = "col-visual"; // Reset class
 
-        if (rawImageString) {
-            currentImages = rawImageString.split(',').map(u => convertToDirectLink(u.trim())).filter(u => u.length > 0);
-        }
-        
-        if (currentImages.length > 0 && imgElement) {
-            imgElement.style.display = 'block';
-            imgElement.src = currentImages[0];
-            if (project.title_link && project.title_link.trim() !== "") {
-                if (visualContainer) visualContainer.classList.add('has-link');
-                imgElement.onclick = () => window.open(project.title_link.trim(), '_blank');
-            } else {
-                imgElement.onclick = null;
-            }
-        } else {
-            projectOverlay.classList.add('no-image');
-            if (imgElement) imgElement.style.display = 'none';
-        }
-
-        // Bottom Section
-        const bottomSection = document.getElementById('section-bottom');
-        if (bottomSection) {
-            bottomSection.innerHTML = '';    
-            bottomSection.style.display = 'none'; 
-
+            // HELPER: Check for valid strings
             const has = (str) => str && str.trim() !== "";
             const getYouTubeID = (url) => {
                 const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
                 return (match && match[2].length === 11) ? match[2] : null;
             };
 
+            // CASE A: VIDEO (Priority 1)
             if (has(project.video)) {
                 const videoID = getYouTubeID(project.video.trim());
                 if (videoID) {
-                    bottomSection.style.display = 'flex';
-                    bottomSection.innerHTML = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${videoID}?rel=0" frameborder="0" allowfullscreen></iframe></div>`;
+                    visualContainer.innerHTML = `
+                        <div class="video-wrapper" style="width:100%; aspect-ratio:16/9; background:black; display:flex; align-items:center;">
+                            <iframe src="https://www.youtube.com/embed/${videoID}?rel=0" frameborder="0" allowfullscreen style="width:100%; height:100%;"></iframe>
+                        </div>`;
                 }
-            } else if (has(project.website_image)) {
-                bottomSection.style.display = 'flex';
+            }
+            // CASE B: CAROUSEL (Priority 2)
+            else if (has(project.carousel)) {
+                const images = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
+                visualContainer.classList.add('carousel-container'); // Add CSS class for positioning
+                initCarousel(visualContainer, images);
+            }
+            // CASE C: WEBSITE LINK IMAGE (Priority 3)
+            else if (has(project.website_image)) {
                 const img = document.createElement('img');
                 img.src = convertToDirectLink(project.website_image.trim());
-                img.className = 'bottom-website-image';
+                img.className = "visual-content website-link-img";
+                
                 if (has(project.website_link)) {
-                    img.classList.add('is-linkable');
                     img.onclick = () => window.open(project.website_link.trim(), '_blank');
                 }
-                bottomSection.appendChild(img);
-            } else if (has(project.carousel)) {
-                bottomSection.style.display = 'flex';
-                const cImg = document.createElement('img');
-                const cLinks = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
-                cImg.src = cLinks[0];
-                cImg.className = 'bottom-website-image';
-                bottomSection.appendChild(cImg);
+                visualContainer.appendChild(img);
+            }
+            // CASE D: STATIC TITLE IMAGE (Fallback)
+            else {
+                // Get title image from CSV keys (case insensitive)
+                const keys = Object.keys(project);
+                const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
+                let rawImage = imageKey ? project[imageKey] : null;
+
+                if (rawImage) {
+                    // Handle comma separated lists, take first one
+                    const imgUrl = rawImage.split(',')[0].trim();
+                    const img = document.createElement('img');
+                    img.src = convertToDirectLink(imgUrl);
+                    img.className = "visual-content";
+                    
+                    // If 'title_link' exists, make it clickable
+                    if (has(project.title_link)) {
+                        img.classList.add('website-link-img');
+                        img.onclick = () => window.open(project.title_link.trim(), '_blank');
+                    }
+                    visualContainer.appendChild(img);
+                }
             }
         }
 
@@ -532,38 +647,38 @@ function openProject(folderName) {
     }
 }
 
-// direction: 1 for Next, -1 for Previous
+// Navigation Logic
 function goToNextProject(direction = 1) {
     const currentFolder = window.location.hash.replace('#', '');
     if (!currentFolder) return;
 
     const allRows = Array.from(document.querySelectorAll('.project-row'));
+    // Only cycle through filtered/visible projects
     const visibleRows = allRows.filter(row => row.style.display !== 'none' && row.dataset.folder);
 
     const currentIndex = visibleRows.findIndex(row => row.dataset.folder === currentFolder);
 
     if (currentIndex !== -1) {
-        // Handle wrapping for both directions
         let nextIndex = (currentIndex + direction) % visibleRows.length;
-        if (nextIndex < 0) nextIndex = visibleRows.length - 1; // Wrap around if going left from 0
+        if (nextIndex < 0) nextIndex = visibleRows.length - 1;
         
         openProject(visibleRows[nextIndex].dataset.folder);
     } else if (visibleRows.length > 0) {
         openProject(visibleRows[0].dataset.folder);
     }
 }
+
+// Close Logic
 function closeProject() {
     const projectOverlay = document.getElementById('project-overlay');
     const wasInArchive = projectOverlay.getAttribute('data-from-archive') === 'true';
 
     projectOverlay.style.display = "none";
     
-    // Clear Content
-    const bottomSection = document.getElementById('section-bottom');
-    if (bottomSection) bottomSection.innerHTML = '';
-    
+    // Clean URL
     history.pushState("", document.title, window.location.pathname + window.location.search);
 
+    // If we came from Archive, re-open it. Otherwise go to Home.
     if (wasInArchive) openArchive();
 }
 

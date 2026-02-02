@@ -1,5 +1,5 @@
 /* =========================================
-   1. GLOBAL RESET & BASICS
+   1. VARIABLES & GLOBAL RESET
    ========================================= */
 :root {
     --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -7,6 +7,14 @@
     --color-bg: #ffffff;
     --color-blue: #002FA7;
     --color-border: #e0e0e0;
+}
+
+*, *::before, *::after, body, html {
+    cursor: none !important; /* Hide System Cursor Globally */
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
 }
 
 body {
@@ -19,26 +27,35 @@ body {
     transition: background-color 1s;
 }
 
-
-/* Hide System Cursor Globally */
-*, *::before, *::after, body, html {
-    cursor: none !important; 
+/* Custom Scrollbar Styling (Global) */
+::-webkit-scrollbar { width: 4px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+::-webkit-scrollbar-thumb { 
+    background-color: #ccc; 
+    border-radius: 4px; 
+    border: 1px solid transparent; 
+    background-clip: content-box;
 }
+::-webkit-scrollbar-thumb:hover { background-color: var(--color-blue); }
 
-/* BOTTOM LAYER: The Canvas (Starts Invisible & Blurry) */
+
+/* =========================================
+   2. CANVAS & BACKGROUND LAYERS
+   ========================================= */
 #three-canvas {
     position: fixed !important;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    z-index: 6 !important;        /* FORCE BOTTOM */
-    opacity: 0 ;        /* FORCE INVISIBLE INITIALLY */
-    filter: blur(10px) ; /* FORCE BLUR */
+    z-index: 6 !important;        
+    opacity: 0;        
+    filter: blur(10px); 
     transition: opacity 2s ease, filter 2s ease !important;
     pointer-events: none !important;
 }
 
+
 /* =========================================
-   2. CUSTOM RED DOT CURSOR AND LOADER
+   3. CUSTOM CURSOR SYSTEM
    ========================================= */
 #custom-cursor {
     position: fixed;
@@ -55,141 +72,114 @@ body {
 
 #custom-cursor.hover-active {
     box-shadow: 0 0 3px 1px rgba(255, 0, 0);
-    pointer-events: none;
 }
 
-
-/* TOP LAYER: The Loader (Starts White & Opaque) */
-#loading-screen {
-    position: fixed !important;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background-color: #ffffff !important; /* Your White Curtain */
-    z-index: 9999 !important;     /* FORCE TOP */
-    opacity: 1;        /* FORCE VISIBLE */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: opacity 2s ease-in-out !important;
-    pointer-events: auto;
+/* Loading Pulse Animation applied to cursor */
+.cursor-loading {
+    width: 8px !important;
+    height: 8px !important;
+    background-color: red !important;
+    animation: loadPulse 0.8s infinite ease-in-out;
 }
 
-
-
-.is-loading-blur {
-    filter: blur(10px) !important;
+@keyframes loadPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
 
-/* This class will be added to your real cursor during loading */
-.cursor-loading-pulse {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) scale(1) !important;
-    pointer-events: none;
-    z-index: 10000; /* Must be higher than the loading screen */
-    filter: blur(2px);
-    scale: 2;
-    
-    /* The Pulse Animation */
-    animation: cursorPulse 1.5s infinite ease-in-out;
+/* Carousel Arrow Transformations */
+#custom-cursor.cursor-arrow-next,
+#custom-cursor.cursor-arrow-prev {
+    background: transparent !important; 
+    border-radius: 0; 
+    width: 20px !important; height: 20px !important;
+    box-shadow: none !important; filter: none !important;
+    border-top: 4px solid red; border-right: 4px solid red;
+    transition: transform 0.2s ease;
 }
 
+#custom-cursor.cursor-arrow-next { transform: translate(-50%, -50%) rotate(45deg); }
+#custom-cursor.cursor-arrow-prev { transform: translate(-50%, -50%) rotate(-135deg); }
 
-/* --- 1. HIDE PERMANENT CURSOR ON TOUCH --- */
-@media (pointer: coarse) {
-    /* Hide the custom cursor elements on mobile */
-    .cursor-dot, 
-    .cursor-circle { 
-        display: none !important; 
-        opacity: 0 !important;
-        visibility: hidden !important;
-    }
-    
-    /* Reset system cursor */
-    body {
-        cursor: auto;
-    }
-}
-
-/* --- 2. THE RED PULSE ANIMATION --- */
-* {
-    /* This kills the default blue/red tap box the phone creates */
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    /* Prevents selecting text when dragging dots */
-    user-select: none !important; 
-}
-
-@media (hover: none) and (pointer: coarse) {
-    #custom-cursor {
-        display: none !important;
-    }
-}
-
+/* Touch Interaction Pulse */
 .touch-pulse {
-    position: fixed;
-    width: 20px;
-    height: 20px;
-    background: rgba(255, 0, 0, 0.7); /* Your red dot */
-    border-radius: 50%;
-    pointer-events: none;
+    position: fixed; width: 20px; height: 20px;
+    background: rgba(255, 0, 0, 0.7); 
+    border-radius: 50%; pointer-events: none;
     z-index: 100000;
     transform: translate(-50%, -50%);
-    /* Animation handles the visual "death" of the dot */
     animation: pulse-out 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
-
 @keyframes pulse-out {
     0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
 }
 
+/* Hide custom cursor on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    #custom-cursor, .cursor-dot, .cursor-circle { display: none !important; opacity: 0 !important; }
+    body { cursor: auto; }
+}
+
+
 /* =========================================
-   3. HEADER (Fixed Center)
+   4. LOADING SCREEN
    ========================================= */
+#loading-screen {
+    position: fixed !important;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: #ffffff !important; 
+    z-index: 9999 !important;     
+    opacity: 1;        
+    display: flex; justify-content: center; align-items: center;
+    transition: opacity 2s ease-in-out !important;
+    pointer-events: auto;
+}
 
-.header-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center; /* Aligns text with the dot */
-    justify-content: center;
-    gap: 15px; /* Space between name and dot */
-    pointer-events: auto; /* Ensures clickable */
-}   
+.is-loading-blur { filter: blur(10px) !important; }
 
+.cursor-loading-pulse {
+    position: fixed !important; top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    pointer-events: none; z-index: 10000; 
+    filter: blur(2px); scale: 2;
+    animation: cursorPulse 1.5s infinite ease-in-out;
+}
+
+
+/* =========================================
+   5. HEADER & NAVIGATION
+   ========================================= */
 header {
     position: fixed;
     top: 50px; left: 50%;
     transform: translate(-50%, -50%); 
-    max-width: 80%;
-    width: max-content;
-    z-index: 10001 !important; /* FIX: Must be higher than loading-screen (9999) */
+    max-width: 80%; width: max-content;
+    z-index: 10001 !important; 
     pointer-events: none;
-    margin: none;
     text-align: center;
 }
 
+.header-container {
+    display: flex; flex-direction: row;
+    align-items: center; justify-content: center;
+    gap: 15px; pointer-events: auto; 
+}   
+
 .title {
-    font-weight: 400;
-    font-size: 1.8rem;
-    margin: 0;
-    cursor: pointer;
-    background: none;
-    padding: 10px 4px;
-    pointer-events: auto;
-    transition: transform 0.3s ease;
+    font-weight: 400; font-size: 1.8rem; margin: 0;
+    cursor: pointer; background: none; padding: 10px 4px;
+    pointer-events: auto; transition: transform 0.3s ease;
 }
 .title:hover { transform: scale(1.05); }
 
-/* --- The Red Pulsating Dot --- */
+/* The Red Header Dot (Archive Trigger) */
 #fixed-archive-dot {
-    width: 12px;
-    height: 12px;
-    background-color: red; /* Red Dot */
-    border-radius: 50%;
-    cursor: pointer;
-    position: relative;
+    width: 12px; height: 12px;
+    background-color: red; border-radius: 50%;
+    cursor: pointer; position: relative;
     animation: pulseGlow 4s infinite ease-in-out;
     transition: box-shadow 0.3s ease;
 }
@@ -197,53 +187,34 @@ header {
     box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1);
     animation: none;
 }
-
-/* The Invisible Hit Area (Easier to click) */
 #fixed-archive-dot::before {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px; height: 40px;
-    background: transparent;
-    border-radius: 50%;
-    
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 40px; height: 40px; background: transparent; border-radius: 50%;
 }
 
 @keyframes pulseGlow {
-    0% {
-        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1);
-    }
-    50% {
-        box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1);
-    }
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
+    50% { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
 }
 
+
 /* =========================================
-   4. SCENE & PROJECT DOTS
+   6. 3D SCENE DOTS
    ========================================= */
 #main-scene {
     position: fixed; top: 0; left: 0;
     width: 100vw; height: 100vh;
-    z-index: 5 !important; /* FIX: Above Canvas (1), Below Loader (9999) */
-    
-    /* Start Hidden/Blurry */
-    opacity: 0; 
-    filter: blur(10px);
+    z-index: 5 !important; 
+    opacity: 0; filter: blur(10px);
     transition: opacity 1.5s ease, filter 2s ease;
-    
-    /* FIX: Allow clicks to pass through empty areas to the dots */
     pointer-events: none; 
 }
 
-/* Ensure the inner container acts as a passthrough */
 #dots-container {
     position: absolute; width: 100%; height: 100%;
-    z-index: 10; 
-    pointer-events: none; /* Crucial */
+    z-index: 10; pointer-events: none; 
 }
 
 .dot {
@@ -252,252 +223,184 @@ header {
     background-color: var(--color-blue);
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    z-index: 11;
-    pointer-events: auto;
+    z-index: 11; pointer-events: auto;
     will-change: transform, left, top;
 }
 .dot::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 35px; /* This is your new 'invisible' clickable size */
-    height: 35px;
+    content: ''; position: absolute;
+    top: 50%; left: 50%; width: 35px; height: 35px;
     transform: translate(-50%, -50%);
-    background: transparent; /* Invisible but clickable */
-    border-radius: 50%;
+    background: transparent; border-radius: 50%;
 }   
 
-/* =========================================
-   5. DOT SPECIFICITIES
-   ========================================= */
-
+/* 3D Model Glow Effect */
 .dot.has-3d::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    z-index: -1; /* Place it behind the dot */
-    
-    /* The Animation */
+    content: ''; position: absolute;
+    top: 50%; left: 50%; width: 100%; height: 100%;
+    border-radius: 50%; transform: translate(-50%, -50%);
+    z-index: -1; pointer-events: none; 
     animation: modelGlow 4s infinite ease-out;
-    pointer-events: none; /* Ensure it doesn't block clicks */
 }
-
 @keyframes modelGlow {
-    0% {
-        box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5);
-    }
-    50% {
-        box-shadow: 0 0 16px 8px rgba(0, 47, 167, 1);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5);
-    }
+    0% { box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5); }
+    50% { box-shadow: 0 0 16px 8px rgba(0, 47, 167, 1); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 47, 167, 0.5); }
 }
 
-.dot.has-audio {
-    /* Ensure the dot itself stays on top */
-    z-index: 10; 
-}
-
-/* 2. The Sonar Ring (Defined Large for Sharpness) */
+/* Audio Sonar Effect */
+.dot.has-audio { z-index: 10; box-shadow: 0 0 5px var(--color-blue); }
 .dot.has-audio::after {
-    content: '';
-    position: absolute;
-    top: 50%; 
-    left: 50%;
-    /* We make it 5x larger than the dot (12px * 5 = 60px) */
-    width: 60px; 
-    height: 60px;
-    
-    /* Center it (using margins because we animate transform) */
-    margin-top: -30.5px; 
-    margin-left: -30.5px;
-    
-    border: 1px solid var(--color-blue); 
-    border-radius: 50%;
-    z-index: -1;
-    pointer-events: none;
-    
-    /* Start invisible/small */
-    opacity: 0;
-    transform: scale(0.2); /* Starts matching the dot size */
-    
+    content: ''; position: absolute;
+    top: 50%; left: 50%; width: 60px; height: 60px;
+    margin-top: -30.5px; margin-left: -30.5px;
+    border: 1px solid var(--color-blue); border-radius: 50%;
+    z-index: -1; pointer-events: none;
+    opacity: 0; transform: scale(0.2); 
     animation: audioSonar 1.5s infinite ease-out;
 }
-
-/* 3. The Animation (Scale from 0.2 to 1) */
 @keyframes audioSonar {
-    0% {
-        transform: scale(0.2); /* Matches the dot size (12px) */
-        opacity: 0;
-        border-width: 2px; /* Start slightly thick */
-    }
-    50% {
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(0.8); /* Expands to full 60px size */
-        opacity: 0;
-        border-width: 0px; /* Fades to thin */
-    }
-
-}
-
-/* Optional: Make the dot slightly different to indicate it's special */
-.dot.has-audio {
-    box-shadow: 0 0 5px var(--color-blue);
+    0% { transform: scale(0.2); opacity: 0; border-width: 2px; }
+    50% { opacity: 0.8; }
+    100% { transform: scale(0.8); opacity: 0; border-width: 0px; }
 }
 
 
 /* =========================================
-   6. UNIFIED POPUP SYSTEM
+   4. THE OVERLAY & GLASS CARD (UNIFIED)
    ========================================= */
-
-/* The Background Overlay */
 .overlay {
     display: none; 
     position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(255,255,255,0.00); /* Fully transparent background */
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    align-items: center; justify-content: center;
+    z-index: 100; 
+}
+
+/* The Card Logic */
+.glass-card {
+    /* Floating Card Dimensions */
+    width: 80vw; 
+    height: 85vh; 
+    margin-top: 50px; /* Offset from header */
+    padding: 40px;
     
-    /* Alignment */
-    align-items: flex-start; 
-    justify-content: center;
-    z-index: 100; /* Default Z-Index */
-}
-
-/* Layering Management */
-.layer-middle { z-index: 100; }
-.layer-top    { z-index: 200; }
-.layer-about  { z-index: 250; }
-
-/* The Shared Panel Logic */
-.popup-panel {
-    height: 100vh;
-    background: rgba(255,255,255,0.1); /* Glass opacity */
+    background: rgba(255, 255, 255, 0.2); 
+    border-radius: 30px; 
+    box-shadow: 0 40px 80px rgba(0,0,0,0.08);
+    
     position: relative;
-    opacity: 0; 
-    animation: fadeIn 0.3s forwards;
-    display: flex;
-    flex-direction: row;
-    margin-top: 8%;
-}
-
-@keyframes fadeIn { to { opacity: 1; } }
-
-/* Panel Size Variations */
-.size-archive {
-    width: 85%; 
-    max-height: 80vh;
-    overflow-y: hidden;
-    display: flex;       
-    flex-direction: column; 
-    margin-top: 5%;
-}
-
-.size-project {
-    width: 85%; 
-    max-height: 90vh; 
-    overflow-y: hidden; /* Scroll handled by #project-scroll-container */
-    margin-top: 5%;
-}
-
-.size-about {
-    width: 85%;
-    height: auto; 
-    min-height: 20vh;
-    max-height: 90vh; 
     overflow: hidden; 
-    background: rgba(255,255,255,0.1); 
+    display: flex;
+    flex-direction: column;
+    
+    opacity: 0; 
+    animation: slideUp 0.5s forwards;
 }
 
-#bio-container {
-    padding: 50px;
-    font-size: 1rem;
-    line-height: 1.6;
-    color: var(--color-text);
-    white-space: pre-wrap; 
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(60px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* Unified Close Button */
+/* Close Button (Universal) */
 .close-btn { 
-    position: absolute; 
-    top: 20px; right: 20px;
+    position: absolute; top: 30px; right: 30px;
     border: none; background: var(--color-blue);
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    cursor: pointer; 
-    font-size: 0; 
-    transition: all 0.2s ease-in-out; 
-    z-index: 200; /* Ensure it's always on top */
+    width: 12px; height: 12px; border-radius: 50%;
+    cursor: pointer; z-index: 200; 
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 .close-btn:hover { 
-    box-shadow: 0 0 10px 2px rgba(0, 47, 167, 1);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px 4px rgba(0, 47, 167, 0.4); 
 }
+
 .close-btn::before {
     content: '';
-    position: absolute; top: 50%; left: 50%;
-    width: 40px; height: 40px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
+    width: 40px;  /* The invisible hit area width */
+    height: 40px; /* The invisible hit area height */
     background: transparent;
 }
-
-
 /* =========================================
-   7. CONTENT SPECIFICS (Archive & Tags)
+   8. CONTENT LAYOUTS
    ========================================= */
 
-/* --- ARCHIVE TABLE --- */
-.database-wrapper {
-    flex-grow: 1; 
-    overflow-y: auto;  
-    min-height: 0;   
-    border-top: 1px solid var(--color-border);
-    margin-top: 20px;
-}
-#artist-database { 
-    width: 100%; 
-    border-collapse: collapse; 
-    table-layout: fixed;
+/* --- A. ARCHIVE & DATABASE --- */
+.type-archive .archive-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    
+    /* ADD THIS: Forces children to the top */
+    justify-content: flex-start; 
+    align-items: stretch;}
+
+#tag-bar { 
+    display: flex; 
+    gap: 8px; 
+    flex-wrap: wrap;
+    margin: 0; /* Remove any default pushing space */
+    margin-bottom: -70px;
 }
 
-/* Column Widths */
-#artist-database th:nth-child(1) { width: 7%; }  /* ID */
-#artist-database th:nth-child(2) { width: 28%; } /* Title */
-#artist-database th:nth-child(3) { width: 10%; } /* Year */
-#artist-database th:nth-child(4) { width: 15%; } /* Place */
-#artist-database th:nth-child(5) { width: 20%; } /* Institution */
-#artist-database th:nth-child(6) { width: 20%; } /* Collaborators */
+.database-wrapper {
+    position: relative;
+    flex: 1; 
+    overflow-y: auto; 
+    min-height: 0;
+    border-top: 1px solid var(--color-border);
+    margin-top: 0; 
+    transition: -webkit-mask-image 0.3s ease; /* Smooth transition */
+}
+
+/* Faded state: Applied via JS */
+.database-wrapper.is-faded {
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+#artist-database th { 
+    text-align: left; padding: 12px 8px;
+    position: sticky; top: 0; 
+    background: white; /* Solid white so rows don't show behind headers */
+    color: black; z-index: 10; cursor: pointer;
+    border-bottom: 1px solid #e0e0e0;
+
+}
+
+/* Table Columns */
+#artist-database th:nth-child(1) { width: 9%; }  
+#artist-database th:nth-child(2) { width: 27%; } 
+#artist-database th:nth-child(3) { width: 8%; } 
+#artist-database th:nth-child(4) { width: 14%; } 
+#artist-database th:nth-child(5) { width: 20%; } 
+#artist-database th:nth-child(6) { width: 19%; } 
 
 #artist-database th { 
     text-align: left; padding: 12px 8px;
     position: sticky; top: 0; 
     background: linear-gradient(rgb(255, 255, 255, 1), rgb(255, 255, 255, 0)); 
-    color: black; z-index: 5; cursor: pointer;
+    color: black; z-index: 10; cursor: pointer;
     border-bottom: 1px solid #e0e0e0;
     transition: all 0.2s ease-in-out;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;    
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-#artist-database th:hover, #artist-database th.active-sort{
-    text-shadow: rgb(0, 47, 167, 0.8) 0 0 8px;
-}
-
+#artist-database th:hover, #artist-database th.active-sort { text-shadow: rgb(0, 47, 167, 0.8) 0 0 8px; }
 #artist-database td { padding: 12px 8px; border-bottom: 1px solid #e0e0e0; }
 
 .project-row.has-folder { cursor: pointer; transition: all 0.1s ease-in-out; }
 .project-row.has-folder:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); }
 
-/* --- TAGS --- */
-#tag-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+/* Filter Tags */
+#tag-bar { display: flex; gap: 8px; flex-wrap: wrap;}
 .tag-btn { 
     background: transparent; border: 1px solid #e0e0e0; 
     padding: 4px 14px; border-radius: 20px; cursor: pointer;
@@ -506,416 +409,154 @@ header {
 .tag-btn.active { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); color: black; }
 .tag-btn:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.2) }
 
-/* --- SCROLLBAR --- */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
-::-webkit-scrollbar-thumb { 
-    background-color: #ccc; 
-    border-radius: 10px; 
-    border: 1px solid transparent; 
-    background-clip: content-box;
+
+/* --- B. ABOUT / BIO --- */
+.size-about { 
+    width: 500px; max-width: 90%; height: auto; max-height: 80vh; 
+    padding: 20px; display: flex; flex-direction: column;
 }
-::-webkit-scrollbar-thumb:hover { background-color: var(--color-blue); }
+/* Note: Bio text styling handled via generic typography rules */
 
 
-/* =========================================
-   8. PROJECT LAYOUT (FULL PAGE SNAP)
-   ========================================= */
-
-/* 1. SCROLL CONTAINER */
-#project-scroll-container {
-    width: 100%;
-    height: 100%; /* Changed from 100vh to 100% to fit inside the panel */
-    
-    /* THE MAGIC: Enforce snapping */
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory; 
-    scroll-behavior: smooth;
-    
-    scrollbar-width: none; 
-    -ms-overflow-style: none;
-    
-    /* Remove default padding here so snap works perfectly at edges */
-    padding: 0; 
-}
-#project-scroll-container::-webkit-scrollbar { display: none; }
-
-/* 2. MAIN SNAP SECTIONS (Desktop: The "Pages") */
-.project-section {
-    position: relative;
-    width: 100%;    
-    height: 100%;   /* Changed from 100vh. Fills the available panel space exactly */
-    
-    /* Snap Logic */
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    
+/* --- C. PROJECT (3-COLUMN CARD) --- */
+.project-grid {
     display: flex; 
-    justify-content: center;
-    align-items: flex-start;
-    overflow: hidden;
-    box-sizing: border-box;
-    
-    /* Optional: padding inside the slide */
-    padding: 40px;
-    padding-bottom: 5%;
-}
-
-/* 3. TOP SECTION: SPLIT LAYOUT (Desktop) */
-.project-split-layout {
-    display: flex;
-    flex-direction: row; 
-    align-items: flex-start; /* Vertically center content */
-    justify-content: center;
-    width: 100%;
-    height: 100%; 
+    width: 100%; height: 100%;
+    padding: 60px; box-sizing: border-box;
     gap: 40px; 
 }
 
-/* --- LEFT: IMAGE (The "Master" Sizer) --- */
-.project-visuals {
-    /* Do NOT set a fixed width or flex-grow here. 
-       We want the box to shrink-wrap the image. */
-    height: 100%; 
-    display: flex;
-    align-items: center; 
-    justify-content: center;
-    
-    /* Safety: Prevent image from taking 100% width and pushing text off */
-    max-width: 70%; 
-}
-
-#poster-container {
-    /* Allow container to fit the content */
-    width: auto; 
+/* Group 1: Text Info (Meta + Desc) */
+.text-group {
+    flex: 0 0 40%; /* 40% Width */
+    display: flex; flex-direction: row; gap: 40px;
     height: 100%;
-    display: flex;
-    align-items: center;
 }
+.col-meta { flex: 1; overflow-y: auto; padding-right: 10px; }
+.col-desc { flex: 1.5; overflow-y: auto; padding-right: 10px; }
 
-#poster-image {
-    /* 1. Fit the Height First */
+/* Group 2: Visuals */
+.col-visual {
+    flex: 1; /* Remaining 60% Width */
     height: 100%;
-    max-height: 100%; 
-    
-    /* 2. Let Width Adjust Naturally (Aspect Ratio) */
-    width: auto;  
-    max-width: 100%;
-    
-    /* 3. Ensure no cropping */
-    object-fit: contain; 
-    
-    display: block;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex; justify-content: center; align-items: center;
+    position: relative;
 }
 
-.project-visuals.has-link #poster-image { cursor: pointer; }
-.project-visuals.has-link:hover #poster-image {
-    box-shadow: 0 0 15px rgba(0, 47, 167, 0.6);
-}
+/* Project Typography */
+.col-meta h2 { font-size: 1.6rem; margin-top: 0; font-weight: 400; line-height: 1.2; }
+.meta-data p { font-size: 0.9rem; color: #666; margin: 5px 0; }
+.col-desc p { font-size: 1rem; line-height: 1.5; margin-top: 0; }
 
-/* --- RIGHT: TEXT (Fills remaining space) --- */
-.project-info {
-    flex: 1; /* "Take the rest of the space" */
-    
-    /* Logic: If image is huge, text gets small. If image is small, text gets wide. */
-    min-width: 300px; /* But don't let text get smaller than this */
-    
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    
-    /* Scroll text internally if it's too long for the page */
-    max-height: 100%; 
-    overflow-y: auto; 
-    padding-right: 10px; 
-}
 
-/* 4. BOTTOM SECTION */
-#section-bottom {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding-bottom: 10%;
-}
+/* =========================================
+   9. VISUAL INTERACTIONS & MEDIA
+   ========================================= */
 
-/* 5. NAVIGATION & INDICATORS */
-.scroll-indicator {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 2rem;
-    color: var(--color-blue);
-    animation: bounce 2s infinite;
-    cursor: pointer;
-    z-index: 10;
-}
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);}
-    40% {transform: translateX(-50%) translateY(-10px);}
-    60% {transform: translateX(-50%) translateY(-5px);}
-}
-
-.carousel-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    font-size: 3rem;
-    color: var(--color-blue);
-    cursor: pointer;
-    padding: 0 20px;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-.project-visuals:hover .carousel-nav { opacity: 1; }
-.carousel-nav.prev { left: 0; }
-.carousel-nav.next { right: 0; }
-
-.bottom-website-image {
-    max-width: 95%;
-    max-height: 90vh; /* Use vh here because this section is full height */
+/* Generic Visuals */
+.visual-content {
+    max-width: 100%; max-height: 100%;
+    width: auto; height: auto;
     object-fit: contain;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+/* Clickable Link Images */
+.website-link-img {
+    cursor: pointer; transition: transform 0.3s, box-shadow 0.3s;
 }
-.video-container {
-    width: 90%;
-    max-width: 1000px;
-    aspect-ratio: 16 / 9;
-    background: black;
-}
-.video-container iframe { width: 100%; height: 100%; }
-
-/* =========================================
-   MOBILE LAYOUT (Vertical)
-   ========================================= */
-@media (max-width: 768px) {
-    /* Reset Parent Height */
-    .project-section {
-        height: auto; 
-        display: block; 
-        padding: 0; 
-        overflow: visible;
-        scroll-snap-align: none; 
-    }
-
-    .project-split-layout {
-        display: block; 
-        width: 100%;
-        height: auto;
-    }
-
-    /* SNAP POINT A: The Image */
-    .project-visuals {
-        width: 100%;
-        height: 100vh; /* Here we want vh because on mobile it's a full screen slide */
-        max-width: none;
-        
-        scroll-snap-align: start; 
-        scroll-snap-stop: always;
-        
-        padding: 40px 20px;
-        box-sizing: border-box;
-    }
-
-    #poster-image {
-        /* Mobile: Fit width, let height float */
-        width: 100%;
-        height: auto;
-        max-height: 80vh; 
-        object-fit: contain;
-    }
-
-    /* SNAP POINT B: The Text */
-    .project-info {
-        width: 100%;
-        height: 100vh; 
-        
-        scroll-snap-align: start; 
-        scroll-snap-stop: always;
-        
-        padding: 40px 20px;
-        box-sizing: border-box;
-        
-        justify-content: center; 
-    }
-
-    /* SNAP POINT C: The Bottom Section */
-    #section-bottom {
-        height: 100vh;
-        scroll-snap-align: start;
-        scroll-snap-stop: always;
-        padding: 20px;
-        box-sizing: border-box;
-    }
-    
-    .carousel-nav { opacity: 1; font-size: 2rem; }
-    .scroll-indicator { display: block; bottom: 10vh; } 
+.website-link-img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 50px rgba(0, 47, 167, 0.3);
 }
 
-/* =========================================
-   MOBILE LAYOUT (THE 3-STEP SNAP)
-   ========================================= */
-@media (max-width: 768px) {
-    /* 1. Reset Parent Height */
-    .project-section {
-        height: auto; 
-        display: block; 
-        padding: 0; /* Remove padding so full-screen works */
-        overflow: visible;
-        
-        /* Disable snapping on the wrapper, we snap the children instead */
-        scroll-snap-align: none; 
-    }
-
-    .project-split-layout {
-        display: block; /* Stack them */
-        width: 100%;
-        height: auto;
-    }
-
-    /* 2. SNAP POINT A: The Image (Page 1) */
-    .project-visuals {
-        width: 100%;
-        height: 100vh; /* Full Screen */
-        
-        scroll-snap-align: start; /* Snap here */
-        scroll-snap-stop: always;
-        
-        padding: 40px 20px;
-        box-sizing: border-box;
-    }
-
-    #poster-image {
-        width: 100%;
-        height: auto;
-        max-height: 80vh; 
-        object-fit: contain;
-    }
-
-    /* 3. SNAP POINT B: The Text (Page 2) */
-    .project-info {
-        width: 100%;
-        height: 100vh; /* Full Screen */
-        
-        scroll-snap-align: start; /* Snap here */
-        scroll-snap-stop: always;
-        
-        padding: 40px 20px;
-        box-sizing: border-box;
-        
-        justify-content: center; /* Center text in the middle of screen */
-        max-width: none;
-    }
-
-    /* 4. SNAP POINT C: The Bottom Section (Page 3) */
-    #section-bottom {
-        height: 100vh; /* Ensure bottom section is also a full page */
-        scroll-snap-align: start;
-        scroll-snap-stop: always;
-        padding: 20px;
-        box-sizing: border-box;
-    }
-    
-    /* Show nav arrows on mobile */
-    .carousel-nav { opacity: 1; font-size: 2rem; }
-    .scroll-indicator { display: block; bottom: 10vh; } 
+/* Carousel Logic */
+.carousel-container {
+    position: relative; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
 }
 
-
-/* =========================================
-   HANDLE NO-IMAGE LAYOUT (Text Only)
-   ========================================= */
-
-/* 1. Completely hide the empty left column */
-#project-overlay.no-image .project-visuals {
-    display: none !important;
+/* Invisible Cursor Zones */
+.carousel-click-zone {
+    position: absolute; top: 0; height: 100%; width: 50%;
+    z-index: 20; cursor: none;
 }
+.zone-left { left: 0; }
+.zone-right { right: 0; }
 
-/* 2. Center the layout container */
-#project-overlay.no-image .project-split-layout {
-    display: block;
-    max-width: 100%; 
-    text-align: center; /* Optional: centers the text block itself */
-}
-
-/* 3. Expand the text column to fill the space */
-#project-overlay.no-image .project-info {
-    width: 100%;
-
-    align-items: flex-start; 
-    text-align: left; 
-}
-
-/* =========================================
-   PROJECT NAVIGATION (NEXT ARROW)
-   ========================================= */
+/* Project Navigation Arrows (Floating) */
 .project-nav-btn {
-    position: fixed;
-    top: 50%;
-    right: 30px; /* Sits on the right edge */
+    position: fixed; top: 50%; right: 30px; 
     transform: translateY(-50%);
-    
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    z-index: 200; /* Above images */
-    
-    font-size: 3rem; /* Big arrow */
-    color: var(--color-blue);
-    opacity: 0.5;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    
-    /* Hide on mobile if it covers content, or make smaller */
+    background: transparent; border: none;
+    cursor: pointer; z-index: 9999; 
+    font-size: 3rem; color: var(--color-blue);
+    opacity: 0.5; transition: opacity 0.3s ease, transform 0.3s ease;
 }
-.project-nav-btn.prev-btn {
-    right: auto; /* Unset right */
-    left: 20px;  /* Move to left */
-}
+.project-nav-btn.prev-btn { right: auto; left: 20px; }
+.project-nav-btn:hover { opacity: 1; transform: translateY(-50%) translateX(5px); }
+.project-nav-btn.prev-btn:hover { transform: translateY(-50%) translateX(-5px); }
 
-.project-nav-btn:hover {
-    opacity: 1;
-    transform: translateY(-50%) translateX(5px); /* Subtle nudging animation */
-}
-
-/* Hide on Mobile to avoid clutter? Or keep small */
-@media (max-width: 768px) {
-    .project-nav-btn {
-        right: 10px;
-        font-size: 2rem;
-        background: rgba(255,255,255,0.2); /* faint background for visibility */
-        border-radius: 50%;
-        padding: 10px;
-    }
-}
 
 /* =========================================
-   9. LOADING ANIMATION (Red Pulse)
+   10. MOBILE & VERTICAL LAYOUT (RESPONSIVE)
    ========================================= */
-/* We add this class to #custom-cursor via JS when loading */
-.cursor-loading {
-    /* Override size to be slightly larger */
-    width: 8px !important;
-    height: 8px !important;
-    background-color: red !important;
+@media (max-width: 900px), (orientation: portrait) {
+
+    /* Reset Glass Card to Full Screen */
+    .project-card, .popup-panel {
+        width: 100vw; height: 100vh; 
+        margin: 0; border-radius: 0;
+        background: white; padding: 0;
+        
+        /* Enable Snap Scrolling on the Card */
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        scroll-behavior: smooth;
+    }
     
-    /* The Glow Animation */
-    animation: loadPulse 0.8s infinite ease-in-out;
+    /* Project Layout: Stacked */
+    .project-grid {
+        display: block; width: 100%; height: auto;
+        padding: 0; gap: 0;
+    }
+    
+    /* Slide 1: Meta + Description (Side-by-side Top) */
+    .text-group {
+        width: 100%; height: 100vh;
+        scroll-snap-align: start; scroll-snap-stop: always;
+        padding: 100px 20px 40px 20px; 
+        box-sizing: border-box;
+        flex-direction: row; gap: 20px;
+    }
+    
+    .col-meta h2 { font-size: 1.4rem; }
+    .col-desc p { font-size: 0.9rem; }
+    
+    /* Slide 2: Visuals */
+    .col-visual {
+        width: 100%; height: 100vh;
+        scroll-snap-align: start; scroll-snap-stop: always;
+        padding: 20px; box-sizing: border-box;
+        background: #f9f9f9;
+    }
+
+    /* Archive/Bio Mobile Tweaks */
+    .size-archive, .size-about { width: 100%; height: 100%; }
+    .size-about { padding: 100px 20px 40px 20px; }
+    .database-wrapper { margin-top: 100px; }
+
+    /* UI Tweaks */
+    .close-btn.card-close { position: fixed; top: 20px; right: 20px; }
+    .project-nav-btn { display: none; } /* Hide nav arrows on mobile */
 }
 
-@keyframes loadPulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); /* Ripple out */
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+@media (max-width: 768px) {
+    /* Touch target adjustments for nav arrows if visible on tablet */
+    .project-nav-btn {
+        right: 10px; font-size: 2rem;
+        background: rgba(255,255,255,0.2); 
+        border-radius: 50%; padding: 10px;
     }
 }
