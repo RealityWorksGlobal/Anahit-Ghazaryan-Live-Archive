@@ -15,6 +15,7 @@ let cachedBioHTML = "";
 let bioLoaded = false;
 let projectsLoaded = false;
 let currentAudioDot = null; // <--- ADD THIS HERE (Move it from bottom to top)
+let currentActiveList = [];
 
 /* =========================================
    2. INITIALIZATION & DATA LOADING
@@ -366,6 +367,7 @@ function renderTags(data) {
 }
 
 function renderTable(data) {
+    currentActiveList = data;
     const tableBody = document.getElementById('database-body');
     if (!tableBody) return;
     
@@ -566,24 +568,51 @@ function openProject(folderName) {
         window.location.hash = folderName;
         
         // 2. Populate Text Columns
-        const set = (id, txt) => { 
-            const el = document.getElementById(id); 
-            if(el) el.textContent = txt || ""; 
-        };
         
-        set('popup-title', project.project_name);
-        set('popup-year', project.year);
-        set('popup-place', project.place); // Ensure your CSV has 'place' column or update this
-        set('popup-inst', project.institution); // Ensure your CSV has 'institution'
+        // A. Title
+        const titleEl = document.getElementById('popup-title');
+        if(titleEl) titleEl.textContent = project.project_name;
 
+        // B. Description
         const descEl = document.getElementById('popup-description');
         if (descEl) descEl.innerHTML = (project.description || "").replace(/\n/g, '<br>');
 
-        // 3. Populate Visual Column (The "Smart Logic")
+        // C. Meta Data List (The New "Form" Layout)
+        const metaContainer = document.getElementById('meta-container');
+        if (metaContainer) {
+            metaContainer.innerHTML = ''; 
+
+            // UPDATED HELPER: Accepts 'isStacked' (true/false)
+            const addMetaRow = (label, value, isStacked = false) => {
+                if (!value || value.trim() === "") return; 
+                
+                const row = document.createElement('div');
+        
+                row.className = 'meta-row';
+                const formattedValue = String(value).replace(/\n/g, '<br>');
+                
+                row.innerHTML = `
+                    <span class="meta-label">${label}</span>
+                    <span class="meta-value">${value}</span>
+                `;
+                metaContainer.appendChild(row);
+            };
+
+            // --- DEFINE YOUR COLUMNS HERE ---
+            
+            // Standard Rows (Side-by-side)
+            addMetaRow("Year",      project.year, true);
+            addMetaRow("Medium",    project.medium, true);
+            addMetaRow("Place",     project.place);
+            addMetaRow("Institution",   project.institution,   true); 
+            addMetaRow("Credits", project.credits, true);
+        }
+
+        // 3. Populate Visual Column (MERGED CAROUSEL LOGIC)
         const visualContainer = document.getElementById('popup-visual-container');
         if (visualContainer) {
             visualContainer.innerHTML = ''; // Clear old content
-            visualContainer.className = "col-visual"; // Reset class
+            visualContainer.className = "col-visual"; 
 
             // HELPER: Check for valid strings
             const has = (str) => str && str.trim() !== "";
@@ -592,54 +621,63 @@ function openProject(folderName) {
                 return (match && match[2].length === 11) ? match[2] : null;
             };
 
-            // CASE A: VIDEO (Priority 1)
+            // --- A. VIDEO (Stays separate at the top) ---
             if (has(project.video)) {
                 const videoID = getYouTubeID(project.video.trim());
                 if (videoID) {
-                    visualContainer.innerHTML = `
-                        <div class="video-wrapper" style="width:100%; aspect-ratio:16/9; background:black; display:flex; align-items:center;">
-                            <iframe src="https://www.youtube.com/embed/${videoID}?rel=0" frameborder="0" allowfullscreen style="width:100%; height:100%;"></iframe>
-                        </div>`;
+                    const vidWrapper = document.createElement('div');
+                    vidWrapper.className = "video-wrapper";
+                    // Style: 16/9 aspect ratio, black background
+                    vidWrapper.style.cssText = "width:100%; aspect-ratio:16/9; background:black; flex-shrink:0; margin-bottom:20px;";
+                    vidWrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoID}?rel=0" frameborder="0" allowfullscreen style="width:100%; height:100%;"></iframe>`;
+                    visualContainer.appendChild(vidWrapper);
                 }
             }
-            // CASE B: CAROUSEL (Priority 2)
-            else if (has(project.carousel)) {
-                const images = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
-                visualContainer.classList.add('carousel-container'); // Add CSS class for positioning
-                initCarousel(visualContainer, images);
+
+            // --- B. PREPARE IMAGES (Merge Title + Carousel) ---
+            let allSlides = [];
+
+            // 1. Add Title Image (First)
+            // We use the case-insensitive search just to be safe
+            const keys = Object.keys(project);
+            const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
+            if (imageKey && has(project[imageKey])) {
+                const titleImgUrl = project[imageKey].split(',')[0].trim();
+                allSlides.push(convertToDirectLink(titleImgUrl));
             }
-            // CASE C: WEBSITE LINK IMAGE (Priority 3)
-            else if (has(project.website_image)) {
+
+            // 2. Add Carousel Images (After)
+            if (has(project.carousel)) {
+                const carouselUrls = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
+                allSlides = allSlides.concat(carouselUrls);
+            }
+
+            // --- C. RENDER THE CAROUSEL ---
+            if (allSlides.length > 0) {
+                // Create the container
+                const carouselWrapper = document.createElement('div');
+                carouselWrapper.className = 'carousel-container';
+                
+                // Style: Fill the width, but restrict height so it doesn't overflow the screen
+                // 'flex-shrink: 0' ensures it doesn't get squashed if there is also a video
+                carouselWrapper.style.cssText = "width:100%; height:100%; min-height:300px; position:relative; flex-shrink:0;"; 
+                
+                visualContainer.appendChild(carouselWrapper);
+                
+                // Initialize with the MERGED list
+                initCarousel(carouselWrapper, allSlides);
+            }
+            
+            // --- D. WEBSITE PREVIEW (Optional Fallback) ---
+            // Only add this if we have absolutely no other images/video
+            else if (has(project.website_image) && !has(project.video)) {
                 const img = document.createElement('img');
                 img.src = convertToDirectLink(project.website_image.trim());
                 img.className = "visual-content website-link-img";
-                
                 if (has(project.website_link)) {
                     img.onclick = () => window.open(project.website_link.trim(), '_blank');
                 }
                 visualContainer.appendChild(img);
-            }
-            // CASE D: STATIC TITLE IMAGE (Fallback)
-            else {
-                // Get title image from CSV keys (case insensitive)
-                const keys = Object.keys(project);
-                const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
-                let rawImage = imageKey ? project[imageKey] : null;
-
-                if (rawImage) {
-                    // Handle comma separated lists, take first one
-                    const imgUrl = rawImage.split(',')[0].trim();
-                    const img = document.createElement('img');
-                    img.src = convertToDirectLink(imgUrl);
-                    img.className = "visual-content";
-                    
-                    // If 'title_link' exists, make it clickable
-                    if (has(project.title_link)) {
-                        img.classList.add('website-link-img');
-                        img.onclick = () => window.open(project.title_link.trim(), '_blank');
-                    }
-                    visualContainer.appendChild(img);
-                }
             }
         }
 
@@ -648,23 +686,30 @@ function openProject(folderName) {
 }
 
 // Navigation Logic
-function goToNextProject(direction = 1) {
+function goToNextProject(direction) {
+    // 1. Identify where we are
     const currentFolder = window.location.hash.replace('#', '');
     if (!currentFolder) return;
 
-    const allRows = Array.from(document.querySelectorAll('.project-row'));
-    // Only cycle through filtered/visible projects
-    const visibleRows = allRows.filter(row => row.style.display !== 'none' && row.dataset.folder);
+    // 2. Find our position in the CURRENT list (Sorted/Filtered)
+    const currentIndex = currentActiveList.findIndex(p => p.folder === currentFolder);
 
-    const currentIndex = visibleRows.findIndex(row => row.dataset.folder === currentFolder);
+    // If the current project isn't in the active list (e.g. filtered out),
+    // fallback to the main data list so we don't get stuck.
+    const listToUse = (currentIndex === -1) ? allProjectData : currentActiveList;
+    const safeIndex = (currentIndex === -1) ? allProjectData.findIndex(p => p.folder === currentFolder) : currentIndex;
 
-    if (currentIndex !== -1) {
-        let nextIndex = (currentIndex + direction) % visibleRows.length;
-        if (nextIndex < 0) nextIndex = visibleRows.length - 1;
-        
-        openProject(visibleRows[nextIndex].dataset.folder);
-    } else if (visibleRows.length > 0) {
-        openProject(visibleRows[0].dataset.folder);
+    // 3. Calculate new index (with looping)
+    let newIndex = safeIndex + direction;
+    
+    // Loop around if at the end or beginning
+    if (newIndex >= listToUse.length) newIndex = 0;
+    if (newIndex < 0) newIndex = listToUse.length - 1;
+
+    // 4. Open the new project
+    const nextProject = listToUse[newIndex];
+    if (nextProject) {
+        openProject(nextProject.folder);
     }
 }
 
@@ -1137,5 +1182,74 @@ document.addEventListener('visibilitychange', () => {
         activeDots.forEach(d => {
             if (d.audio && !d.audio.paused) d.audio.pause();
         });
+    }
+});
+
+/* =========================================
+   GLOBAL PROJECT SWIPE (TOUCH & MOUSE)
+   ========================================= */
+const projectOverlay = document.getElementById('project-overlay');
+
+// Variables to track movement
+let swipeStartX = 0;
+let swipeStartY = 0;
+
+// --- 1. UNIFIED HANDLERS ---
+
+function handleSwipeStart(x, y) {
+    swipeStartX = x;
+    swipeStartY = y;
+    isDragging = true;
+}
+
+function handleSwipeEnd(x, y, target) {
+    if (!isDragging) return;
+    isDragging = false;
+
+    // A. SAFETY: Ignore if swiping inside a Carousel (let the carousel handle it)
+    if (target.closest('.carousel-container')) return;
+
+    // B. SAFETY: Ignore if user is highlighting text (Desktop specific)
+    const selection = window.getSelection().toString();
+    if (selection.length > 0) return; 
+
+    // C. CALCULATE MOVEMENT
+    const diffX = swipeStartX - x;
+    const diffY = swipeStartY - y;
+
+    // D. DETERMINE INTENT
+    // Rule: Movement must be mostly Horizontal (> Vertical) and at least 50px long
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+            // Dragged Left -> Next Project
+            goToNextProject(1);
+        } else {
+            // Dragged Right -> Prev Project
+            goToNextProject(-1);
+        }
+    }
+}
+
+// --- 2. TOUCH LISTENERS (Mobile/Tablet) ---
+projectOverlay.addEventListener('touchstart', (e) => {
+    handleSwipeStart(e.changedTouches[0].screenX, e.changedTouches[0].screenY);
+}, { passive: true });
+
+projectOverlay.addEventListener('touchend', (e) => {
+    handleSwipeEnd(e.changedTouches[0].screenX, e.changedTouches[0].screenY, e.target);
+}, { passive: true });
+
+// --- 3. MOUSE LISTENERS (Desktop Click & Drag) ---
+projectOverlay.addEventListener('mousedown', (e) => {
+    // Only trigger on Left Click (button 0)
+    if (e.button === 0) {
+        handleSwipeStart(e.screenX, e.screenY);
+    }
+});
+
+// We attach 'mouseup' to window so it works even if you drag off the card
+window.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+        handleSwipeEnd(e.screenX, e.screenY, e.target);
     }
 });

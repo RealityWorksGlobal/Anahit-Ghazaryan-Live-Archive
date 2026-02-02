@@ -45,12 +45,10 @@
                 
                 <div class="text-group">
                     <div class="col-meta scroll-content">
-                        <h2 id="popup-title"></h2>
-                        <div class="meta-data">
-                            <p id="popup-year"></p>
-                            <p id="popup-place"></p>
-                            <p id="popup-inst"></p>
-                        </div>
+                        <h2 id="popup-title">Project Title</h2>
+                        
+                        <div id="meta-container" class="meta-grid">
+                            </div>
                     </div>
                     <div class="col-desc scroll-content">
                         <div id="popup-description"></div>
@@ -61,9 +59,9 @@
 
             </div>
             
-            <button class="project-nav-btn prev-btn" onclick="goToNextProject(-1)">&#10094;</button>
-            <button class="project-nav-btn next-btn" onclick="goToNextProject(1)">&#10095;</button>
         </div>
+        <button class="project-nav-btn prev-btn" onclick="goToNextProject(-1)">&#10094;</button>
+            <button class="project-nav-btn next-btn" onclick="goToNextProject(1)">&#10095;</button>
     </div>
 
     <div id="archive-overlay" class="overlay layer-middle">
@@ -71,9 +69,7 @@
             <button class="close-btn card-close" onclick="closeArchive()"></button>
             
             <div class="archive-layout">
-                <div class="filter-container">
-                    <div id="tag-bar"></div>
-                </div>
+                <div id="tag-bar"></div> 
                 
                 <div class="database-wrapper scroll-content">
                     <table id="artist-database">
