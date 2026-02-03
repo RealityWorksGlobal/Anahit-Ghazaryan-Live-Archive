@@ -5,16 +5,16 @@ const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE
 const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv";
 
 // PATHS
-const ASSET_PATH = './assets/'; 
+const ASSET_PATH = './assets/';
 
 // GLOBAL STATE
 let activeDots = [];
 let mouse = { x: -9999, y: -9999 }; // Fixes "mouse is not defined"
 let allProjectData = [];
-let cachedBioHTML = ""; 
+let cachedBioHTML = "";
 let bioLoaded = false;
 let projectsLoaded = false;
-let currentAudioDot = null; // <--- ADD THIS HERE (Move it from bottom to top)
+let currentAudioDot = null;
 let currentActiveList = [];
 
 /* =========================================
@@ -27,22 +27,22 @@ if (cursorElement) cursorElement.classList.add('cursor-loading');
 Papa.parse(sheetURL, {
     download: true,
     header: true,
-    complete: function(results) {
+    complete: function (results) {
         allProjectData = results.data;
-        
+
         // Render UI
-        renderTable(allProjectData); 
-        renderTags(allProjectData);  
-        
+        renderTable(allProjectData);
+        renderTags(allProjectData);
+
         // Render Scene (Fixes "renderScene is not defined")
-        renderScene(allProjectData); 
-        
+        renderScene(allProjectData);
+
         // Initialize 3D
-        init3D(); 
-        
+        init3D();
+
         // Start Physics Loop
         requestAnimationFrame(animateDots);
-        
+
         // Reveal Site
         window.hideLoadingScreen();
     }
@@ -52,8 +52,8 @@ Papa.parse(sheetURL, {
 Papa.parse(bioSheetURL, {
     download: true,
     header: true,
-    complete: function(results) {
-        if(results.data && results.data[0]) {
+    complete: function (results) {
+        if (results.data && results.data[0]) {
             cachedBioHTML = results.data[0]['content'] || results.data[0]['bio_text'];
         }
         bioLoaded = true;
@@ -68,16 +68,16 @@ function checkAllReady() {
 }
 
 // C. REVEAL FUNCTION
-window.hideLoadingScreen = function() {
+window.hideLoadingScreen = function () {
     const loader = document.getElementById('loading-screen');
     const canvas = document.getElementById('three-canvas');
-    const mainScene = document.getElementById('main-scene'); 
+    const mainScene = document.getElementById('main-scene');
 
     // STAGE 1: Reveal Ghost (Canvas AND Dots)
     if (canvas) {
-        canvas.style.opacity = '1'; 
+        canvas.style.opacity = '1';
         canvas.style.visibility = 'visible';
-    } 
+    }
     if (mainScene) mainScene.style.opacity = '1';
 
     // STAGE 2: Fade Loader
@@ -89,17 +89,20 @@ window.hideLoadingScreen = function() {
     setTimeout(() => {
         if (canvas) canvas.style.filter = 'blur(0px)';
         if (mainScene) mainScene.style.filter = 'blur(0px)';
-        
+
         setTimeout(() => {
             if (loader) loader.remove();
             if (window.cursorElement) {
                 window.cursorElement.classList.remove('cursor-loading', 'cursor-loading-pulse');
-                Object.assign(window.cursorElement.style, { 
-                    position: '', top: '', left: '', transform: '' 
+                Object.assign(window.cursorElement.style, {
+                    position: '',
+                    top: '',
+                    left: '',
+                    transform: ''
                 });
             }
         }, 1500);
-    }, 1500); 
+    }, 1500);
 };
 
 /* =========================================
@@ -109,8 +112,8 @@ function renderScene(data) {
     const container = document.getElementById('dots-container');
     if (!container) return;
 
-    container.innerHTML = ""; 
-    activeDots = []; 
+    container.innerHTML = "";
+    activeDots = [];
 
     data.forEach(project => {
         if (!project.project_name) return;
@@ -120,15 +123,15 @@ function renderScene(data) {
 
         // 1. Folder Logic
         if (project.folder) {
-            dot.dataset.folder = project.folder; 
-            dot.onclick = function(e) {
-                if (e.pointerType === 'touch') return; 
+            dot.dataset.folder = project.folder;
+            dot.onclick = function (e) {
+                if (e.pointerType === 'touch') return;
                 openProject(project.folder);
             };
         }
 
         // 2. 3D Model Logic
-        const glbFile = project.model_glb; 
+        const glbFile = project.model_glb;
         if (glbFile && glbFile.trim() !== "") {
             dot.dataset.glb = glbFile.trim();
             dot.classList.add('has-3d');
@@ -139,22 +142,22 @@ function renderScene(data) {
         const audioFilename = project.audio;
         if (audioFilename && audioFilename.trim() !== "") {
             dot.classList.add('has-audio');
-            
+
             // Construct path: ./assets/filename.wav
             const localAudioPath = ASSET_PATH + audioFilename.trim();
-            
+
             audioObj = new Audio(localAudioPath);
-            audioObj.loop = true; 
-            audioObj.volume = 0;  
-            audioObj.preload = 'auto'; 
-            
+            audioObj.loop = true;
+            audioObj.volume = 0;
+            audioObj.preload = 'auto';
+
             audioObj.addEventListener('error', (e) => {
                 console.warn("Audio file missing or blocked:", localAudioPath);
             });
         }
 
         // 4. Random Position
-        let x = Math.random() * 80 + 10; 
+        let x = Math.random() * 80 + 10;
         let y = Math.random() * 80 + 10;
         let vx = (Math.random() - 0.5) * 0.06;
         let vy = (Math.random() - 0.5) * 0.06;
@@ -162,13 +165,16 @@ function renderScene(data) {
         dot.style.left = x + '%';
         dot.style.top = y + '%';
         dot.style.transform = `translate(-50%, -50%) scale(1)`;
-        dot.style.opacity = project.folder ? 1 : 0.3; 
-        
+        dot.style.opacity = project.folder ? 1 : 0.3;
+
         container.appendChild(dot);
 
         activeDots.push({
             element: dot,
-            x: x, y: y, vx: vx, vy: vy,
+            x: x,
+            y: y,
+            vx: vx,
+            vy: vy,
             folder: project.folder,
             hasFolder: !!project.folder,
             audio: audioObj,
@@ -180,9 +186,9 @@ function renderScene(data) {
 /* =========================================
    4. PHYSICS ENGINE & ANIMATION LOOP
    ========================================= */
-const SENSITIVITY_RADIUS = 80; 
-const AUDIO_RADIUS = 80; 
-const MAX_SCALE = 1.1;            
+const SENSITIVITY_RADIUS = 80;
+const AUDIO_RADIUS = 80;
+const MAX_SCALE = 1.1;
 
 function animateDots() {
     // 1. Check overlays
@@ -194,7 +200,7 @@ function animateDots() {
     const projectOpen = projectOverlay ? projectOverlay.style.display === 'flex' : false;
     const aboutOpen = aboutOverlay ? aboutOverlay.style.display === 'flex' : false;
     const isOverlayOpen = archiveOpen || projectOpen || aboutOpen;
-    
+
     // 2. Hide mouse if overlay is open
     const localMouseX = isOverlayOpen ? -9999 : mouse.x;
     const localMouseY = isOverlayOpen ? -9999 : mouse.y;
@@ -204,7 +210,7 @@ function animateDots() {
         if (dot.element.classList.contains('is-active-3d')) {
             dot.element.style.left = dot.x + '%';
             dot.element.style.top = dot.y + '%';
-            return; 
+            return;
         }
 
         // B. Position Math
@@ -215,7 +221,7 @@ function animateDots() {
         // C. Move Logic
         let speedFactor = 1.0;
         if (dist < SENSITIVITY_RADIUS) {
-            speedFactor = 1 - (1 - (dist / SENSITIVITY_RADIUS)); 
+            speedFactor = 1 - (1 - (dist / SENSITIVITY_RADIUS));
         }
 
         dot.x += dot.vx * speedFactor;
@@ -232,8 +238,8 @@ function animateDots() {
             }
             if (dist < AUDIO_RADIUS) {
                 let vol = 1 - (dist / AUDIO_RADIUS);
-                vol = Math.max(0, Math.min(1, vol)); 
-                
+                vol = Math.max(0, Math.min(1, vol));
+
                 if (dot.audio) {
                     dot.audio.volume = vol;
                     if (dot.audio.paused && vol > 0.01) {
@@ -243,7 +249,7 @@ function animateDots() {
             } else {
                 if (dot.audio && !dot.audio.paused) {
                     dot.audio.pause();
-                    dot.audio.currentTime = 0; 
+                    dot.audio.currentTime = 0;
                 }
             }
         }
@@ -257,9 +263,9 @@ function animateDots() {
             scale = 1 + (proximity * (MAX_SCALE - 1));
 
             if (dot.hasFolder) {
-                const blur = 15 * proximity;   
-                const spread = 2 * proximity; 
-                const alpha = proximity * 1; 
+                const blur = 15 * proximity;
+                const spread = 2 * proximity;
+                const alpha = proximity * 1;
                 shadowStyle = `0 0 ${blur}px ${spread}px rgba(0, 47, 167, ${alpha})`;
                 dot.element.style.opacity = 1;
             } else {
@@ -280,9 +286,9 @@ function animateDots() {
 }
 
 // Global Mouse Tracker (Crucial for Physics)
-document.addEventListener('mousemove', (e) => { 
-    mouse.x = e.clientX; 
-    mouse.y = e.clientY; 
+document.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
 });
 
 /* =========================================
@@ -293,7 +299,7 @@ function sortTable(n) {
     const table = document.getElementById("artist-database");
     let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
     switching = true;
-    dir = "asc"; 
+    dir = "asc";
 
     // Remove 'active-sort' class from all headers
     const headers = table.getElementsByTagName("th");
@@ -335,33 +341,34 @@ function sortTable(n) {
             }
         }
     }
+    updateActiveListFromDOM();
 }
 
 function renderTags(data) {
     const tagBar = document.getElementById('tag-bar');
     if (!tagBar) return;
-    
-    tagBar.innerHTML = ""; 
+
+    tagBar.innerHTML = "";
     let allTags = new Set();
-    
+
     data.forEach(project => {
         if (project.medium) {
             const tags = project.medium.split(',').map(t => t.trim());
-            tags.forEach(tag => { if(tag) allTags.add(tag); });
+            tags.forEach(tag => { if (tag) allTags.add(tag); });
         }
     });
-    
+
     const allBtn = document.createElement('button');
     allBtn.textContent = "all";
-    allBtn.className = "tag-btn active"; 
-    allBtn.onclick = function(e) { filterByTag('all', e.target); };
+    allBtn.className = "tag-btn active";
+    allBtn.onclick = function (e) { filterByTag('all', e.target); };
     tagBar.appendChild(allBtn);
-    
+
     Array.from(allTags).sort().forEach(tag => {
         const btn = document.createElement('button');
         btn.textContent = tag.toLowerCase();
         btn.className = "tag-btn";
-        btn.onclick = function(e) { filterByTag(tag, e.target); };
+        btn.onclick = function (e) { filterByTag(tag, e.target); };
         tagBar.appendChild(btn);
     });
 }
@@ -370,49 +377,137 @@ function renderTable(data) {
     currentActiveList = data;
     const tableBody = document.getElementById('database-body');
     if (!tableBody) return;
-    
-    tableBody.innerHTML = ""; 
+
+    tableBody.innerHTML = "";
     data.forEach(project => {
         if (!project.project_name) return;
-        
+
         const row = document.createElement('tr');
         row.className = 'project-row';
 
         if (project.folder) row.dataset.folder = project.folder;
-        
+
         if (project.folder) {
-            row.classList.add('has-folder'); 
-            row.onclick = function() { openProject(project.folder); };
+            row.classList.add('has-folder');
+            row.onclick = function () { openProject(project.folder); };
         }
-        
+
         row.setAttribute('data-tags', project.medium ? project.medium : "");
-        
+
         const columns = [project.project_id, project.project_name, project.year, project.place, project.institution, project.collaborators];
         columns.forEach(text => {
             const cell = document.createElement('td');
             cell.textContent = text || "";
             row.appendChild(cell);
         });
-        
+
         tableBody.appendChild(row);
     });
+}
+
+// Global cache for the shadows so we can remove them later
+let activeShadows = [];
+
+function updateScrollShadows() {
+    const isMobile = window.innerWidth <= 900 || window.innerHeight > window.innerWidth;
+    
+    if (isMobile) {
+        // MOBILE LOGIC: Shadow goes on the CARD, but we check the CONTENT height
+        document.querySelectorAll('.glass-card').forEach(card => {
+            // Find the scrollable child inside this card
+            const scrollableContent = card.querySelector('.project-grid, .archive-layout, .card-content');
+            
+            // Remove old shadow
+            const oldShadow = card.querySelector('.mobile-card-shadow');
+            if (oldShadow) oldShadow.remove();
+            
+            if (scrollableContent) {
+                // Check if the CONTENT is taller than the CARD
+                const needsScroll = scrollableContent.scrollHeight > card.clientHeight;
+
+                if (needsScroll) {
+                    const shadow = document.createElement('div');
+                    shadow.className = 'mobile-card-shadow';
+                    card.appendChild(shadow); // Append to the locked Frame
+                    shadow.style.display = 'block';
+                }
+            }
+        });
+    } else {
+        // DESKTOP LOGIC (Unchanged)
+        document.querySelectorAll('.scroll-content').forEach(el => {
+            const oldShadow = el.querySelector('.sticky-shadow');
+            if (oldShadow) oldShadow.remove();
+
+            if (el.scrollHeight > el.clientHeight + 5) {
+                const shadow = document.createElement('div');
+                shadow.className = 'sticky-shadow';
+                el.appendChild(shadow);
+                shadow.style.display = 'block';
+            }
+        });
+    }
+}
+
+function createFloatingShadow(targetEl) {
+    // 1. Measure exactly where the element is on screen
+    const rect = targetEl.getBoundingClientRect();
+    
+    // 2. Create the shadow div
+    const shadow = document.createElement('div');
+    shadow.className = 'scroll-shadow-overlay is-visible';
+    
+    // 3. Position it exactly over the bottom of the target
+    shadow.style.width = rect.width + 'px';
+    shadow.style.left = rect.left + 'px';
+    shadow.style.top = (rect.bottom - 60) + 'px'; // 60px is height of shadow
+    
+    // 4. Append to BODY (so it sits above everything)
+    document.body.appendChild(shadow);
+    activeShadows.push(shadow);
+}
+
+function updateActiveListFromDOM() {
+    const rows = document.querySelectorAll('.project-row');
+    const newList = [];
+
+    rows.forEach(row => {
+        // 1. Check if the row is visible
+        if (row.style.display !== 'none') {
+            // 2. Get the folder name attached to the row
+            const folder = row.dataset.folder;
+            if (folder) {
+                // 3. Find the full data object for this folder
+                const projectData = allProjectData.find(p => p.folder === folder);
+                if (projectData) {
+                    newList.push(projectData);
+                }
+            }
+        }
+    });
+
+    // 4. Update the global active list
+    if (newList.length > 0) {
+        currentActiveList = newList;
+    }
 }
 
 function filterByTag(selectedTag, buttonElement) {
     const rows = document.querySelectorAll('.project-row');
     const buttons = document.querySelectorAll('.tag-btn');
-    
+
     buttons.forEach(btn => btn.classList.remove('active'));
     buttonElement.classList.add('active');
-    
+
     rows.forEach(row => {
         const rowData = row.getAttribute('data-tags');
         if (selectedTag === 'all' || (rowData && rowData.includes(selectedTag))) {
-            row.style.display = ""; 
+            row.style.display = "";
         } else {
-            row.style.display = "none"; 
+            row.style.display = "none";
         }
     });
+    updateActiveListFromDOM();
 }
 
 // Navigation Memory
@@ -430,6 +525,8 @@ function openArchive() {
     closeAllOverlays();
     document.getElementById('archive-overlay').style.display = 'flex';
     window.location.hash = 'archive';
+    activeShadows.forEach(s => s.remove());
+    activeShadows = [];
 }
 
 function handleArchiveFade() {
@@ -450,7 +547,7 @@ function handleArchiveFade() {
 
     // Listen for scroll
     wrapper.addEventListener('scroll', updateFade);
-    
+
     // Run once immediately to check if the list is short (no scroll needed)
     updateFade();
 }
@@ -463,7 +560,7 @@ function closeArchive() {
 function openAbout() {
     const archiveEl = document.getElementById('archive-overlay');
     const projectEl = document.getElementById('project-overlay');
-    
+
     wasArchiveOpenBefore = (archiveEl && archiveEl.style.display === 'flex');
     const projectOpen = (projectEl && projectEl.style.display === 'flex');
     const currentProjectHash = window.location.hash;
@@ -471,7 +568,7 @@ function openAbout() {
     closeAllOverlays();
     const overlay = document.getElementById('about-overlay');
     const container = document.getElementById('bio-container');
-    
+
     if (projectOpen) overlay.setAttribute('data-return', currentProjectHash);
     else if (wasArchiveOpenBefore) overlay.setAttribute('data-return', '#archive');
     else overlay.removeAttribute('data-return');
@@ -480,6 +577,7 @@ function openAbout() {
     else container.textContent = "Loading...";
 
     overlay.style.display = 'flex';
+    setTimeout(updateScrollShadows, 100);
 }
 
 function closeAbout() {
@@ -504,17 +602,17 @@ function convertToDirectLink(url) {
         else if (url.includes("id=")) id = url.split('id=')[1].split('&')[0];
         if (id) return `https://lh3.googleusercontent.com/u/0/d/${id}=s2000`;
     }
-    return url; 
+    return url;
 }
 
 // Helper: Carousel Builder (Logic from previous step)
 function initCarousel(container, images) {
     container.innerHTML = ''; // Clear
-    
+
     // Create Image
     const imgElement = document.createElement('img');
     imgElement.src = images[0];
-    imgElement.className = "visual-content carousel-img"; 
+    imgElement.className = "visual-content carousel-img";
     container.appendChild(imgElement);
 
     // Create Invisible Hover Zones
@@ -527,7 +625,7 @@ function initCarousel(container, images) {
 
     // Logic
     let currentIndex = 0;
-    
+
     function updateImage() {
         imgElement.style.opacity = 0.5;
         setTimeout(() => {
@@ -554,24 +652,24 @@ function initCarousel(container, images) {
 function openProject(folderName) {
     if (!folderName) return;
     const project = allProjectData.find(p => p.folder === folderName);
-    
+
     if (project) {
         // 1. Manage Overlays
         const archiveOverlay = document.getElementById('archive-overlay');
         const isArchiveOpen = (archiveOverlay && archiveOverlay.style.display === 'flex');
         closeAllOverlays(); // Close others
-        
+
         const projectOverlay = document.getElementById('project-overlay');
         if (isArchiveOpen) projectOverlay.setAttribute('data-from-archive', 'true');
         else projectOverlay.removeAttribute('data-from-archive');
 
         window.location.hash = folderName;
-        
+
         // 2. Populate Text Columns
-        
+
         // A. Title
         const titleEl = document.getElementById('popup-title');
-        if(titleEl) titleEl.textContent = project.project_name;
+        if (titleEl) titleEl.textContent = project.project_name;
 
         // B. Description
         const descEl = document.getElementById('popup-description');
@@ -580,17 +678,17 @@ function openProject(folderName) {
         // C. Meta Data List (The New "Form" Layout)
         const metaContainer = document.getElementById('meta-container');
         if (metaContainer) {
-            metaContainer.innerHTML = ''; 
+            metaContainer.innerHTML = '';
 
             // UPDATED HELPER: Accepts 'isStacked' (true/false)
             const addMetaRow = (label, value, isStacked = false) => {
-                if (!value || value.trim() === "") return; 
-                
+                if (!value || value.trim() === "") return;
+
                 const row = document.createElement('div');
-        
+
                 row.className = 'meta-row';
                 const formattedValue = String(value).replace(/\n/g, '<br>');
-                
+
                 row.innerHTML = `
                     <span class="meta-label">${label}</span>
                     <span class="meta-value">${value}</span>
@@ -599,21 +697,27 @@ function openProject(folderName) {
             };
 
             // --- DEFINE YOUR COLUMNS HERE ---
-            
+
             // Standard Rows (Side-by-side)
-            addMetaRow("Year",      project.year, true);
-            addMetaRow("Medium",    project.medium, true);
-            addMetaRow("Place",     project.place);
-            addMetaRow("Institution",   project.institution,   true); 
+            addMetaRow("Year", project.year, true);
+            addMetaRow("Medium", project.medium, true);
+            addMetaRow("Place", project.place);
+            addMetaRow("Institution", project.institution, true);
             addMetaRow("Credits", project.credits, true);
-            addMetaRow("Link", project.website_link, true);
+            if (project.website_link && project.website_link.trim() !== "") {
+                const url = project.website_link.trim();
+                // We pass the HTML string directly instead of plain text
+                const linkHTML = `<a href="${url}" target="_blank" class="link-interlaced" title="Open Website"></a>`;
+                
+                addMetaRow("Link", linkHTML, true);
+            }
         }
 
         // 3. Populate Visual Column (MERGED CAROUSEL LOGIC)
         const visualContainer = document.getElementById('popup-visual-container');
         if (visualContainer) {
             visualContainer.innerHTML = ''; // Clear old content
-            visualContainer.className = "col-visual"; 
+            visualContainer.className = "col-visual";
 
             // HELPER: Check for valid strings
             const has = (str) => str && str.trim() !== "";
@@ -658,17 +762,17 @@ function openProject(folderName) {
                 // Create the container
                 const carouselWrapper = document.createElement('div');
                 carouselWrapper.className = 'carousel-container';
-                
+
                 // Style: Fill the width, but restrict height so it doesn't overflow the screen
                 // 'flex-shrink: 0' ensures it doesn't get squashed if there is also a video
-                carouselWrapper.style.cssText = "width:100%; height:100%; min-height:300px; position:relative; flex-shrink:0;"; 
-                
+                carouselWrapper.style.cssText = "width:100%; height:100%; min-height:300px; position:relative; flex-shrink:0;";
+
                 visualContainer.appendChild(carouselWrapper);
-                
+
                 // Initialize with the MERGED list
                 initCarousel(carouselWrapper, allSlides);
             }
-            
+
             // --- D. WEBSITE PREVIEW (Optional Fallback) ---
             // Only add this if we have absolutely no other images/video
             else if (has(project.website_image) && !has(project.video)) {
@@ -683,34 +787,45 @@ function openProject(folderName) {
         }
 
         projectOverlay.style.display = "flex";
+        setTimeout(updateScrollShadows, 50);
     }
 }
 
 // Navigation Logic
 function goToNextProject(direction) {
-    // 1. Identify where we are
-    const currentFolder = window.location.hash.replace('#', '');
+    // 1. Get the current folder from URL
+    const rawHash = window.location.hash.replace('#', '');
+    
+    // FIX: Decode the URL (Turn "Project%20Name" back into "Project Name")
+    const currentFolder = decodeURIComponent(rawHash);
+    
     if (!currentFolder) return;
 
-    // 2. Find our position in the CURRENT list (Sorted/Filtered)
-    const currentIndex = currentActiveList.findIndex(p => p.folder === currentFolder);
+    // 2. Find position in the CURRENT ACTIVE LIST (The Filtered List)
+    let currentIndex = currentActiveList.findIndex(p => p.folder === currentFolder);
+    let listToUse = currentActiveList;
 
-    // If the current project isn't in the active list (e.g. filtered out),
-    // fallback to the main data list so we don't get stuck.
-    const listToUse = (currentIndex === -1) ? allProjectData : currentActiveList;
-    const safeIndex = (currentIndex === -1) ? allProjectData.findIndex(p => p.folder === currentFolder) : currentIndex;
+    // 3. Fallback Logic (Only if something is truly wrong)
+    // If the project isn't in the active list (rare), check the full database
+    if (currentIndex === -1) {
+        // Try to find it in the main list so navigation doesn't break
+        const masterIndex = allProjectData.findIndex(p => p.folder === currentFolder);
+        if (masterIndex !== -1) {
+            listToUse = allProjectData;
+            currentIndex = masterIndex;
+        }
+    }
 
-    // 3. Calculate new index (with looping)
-    let newIndex = safeIndex + direction;
-    
-    // Loop around if at the end or beginning
-    if (newIndex >= listToUse.length) newIndex = 0;
-    if (newIndex < 0) newIndex = listToUse.length - 1;
+    // 4. Calculate New Index (Looping)
+    if (currentIndex !== -1) {
+        let newIndex = currentIndex + direction;
+        
+        // Loop to start/end
+        if (newIndex >= listToUse.length) newIndex = 0;
+        if (newIndex < 0) newIndex = listToUse.length - 1;
 
-    // 4. Open the new project
-    const nextProject = listToUse[newIndex];
-    if (nextProject) {
-        openProject(nextProject.folder);
+        // 5. Go!
+        openProject(listToUse[newIndex].folder);
     }
 }
 
@@ -720,7 +835,7 @@ function closeProject() {
     const wasInArchive = projectOverlay.getAttribute('data-from-archive') === 'true';
 
     projectOverlay.style.display = "none";
-    
+
     // Clean URL
     history.pushState("", document.title, window.location.pathname + window.location.search);
 
@@ -729,8 +844,61 @@ function closeProject() {
 }
 
 /* =========================================
-   7. EVENTS & CURSOR
+   7. EVENTS & CURSOR (OPTIMIZED)
    ========================================= */
+
+// Mouse State Variables
+let currentMouseX = 0;
+let currentMouseY = 0;
+let isCursorTicking = false;
+
+// 1. Lightweight Event Listener (Just captures data)
+document.addEventListener('mousemove', (e) => {
+    currentMouseX = e.clientX;
+    currentMouseY = e.clientY;
+    
+    // Update global physics mouse immediately (it's cheap)
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+
+    if (!isCursorTicking) {
+        window.requestAnimationFrame(updateCursorVisuals);
+        isCursorTicking = true;
+    }
+});
+
+// 2. Heavy Visual Updates (Throttled to Frame Rate)
+function updateCursorVisuals() {
+    if (cursorElement) {
+        cursorElement.style.left = currentMouseX + 'px';
+        cursorElement.style.top = currentMouseY + 'px';
+        
+        // Check hover state only once per frame
+        const el = document.elementFromPoint(currentMouseX, currentMouseY);
+        const isClickable = el && el.closest('button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #fixed-archive-dot, .carousel-nav');
+        
+        if (isClickable) cursorElement.classList.add('hover-active');
+        else cursorElement.classList.remove('hover-active');
+    }
+    
+    // Also handle the 3D rotation logic here if dragging
+    if ((isHovering || isDragging) && currentModel) {
+        const deltaX = currentMouseX - previousMouse.x;
+        const deltaY = currentMouseY - previousMouse.y;
+        
+        // Only apply rotation if dragging/hovering
+        if (isDragging) {
+             rotVelocity.x += deltaX * 0.003;
+             rotVelocity.y += deltaY * 0.003;
+        }
+        
+        previousMouse = { x: currentMouseX, y: currentMouseY };
+    }
+
+    isCursorTicking = false;
+}
+
+// Keep the Click/Keydown listeners as they were...
 window.onclick = function(event) {
     if (event.target.id === 'project-overlay') closeProject();
     if (event.target.id === 'archive-overlay') closeArchive();
@@ -745,18 +913,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Cursor
-document.addEventListener('mousemove', (e) => {
-    if (cursorElement) {
-        cursorElement.style.left = e.clientX + 'px';
-        cursorElement.style.top = e.clientY + 'px';
-        
-        const isClickable = e.target.closest(`button, a, .dot, .project-row.has-folder, th, .tag-btn, .title, #fixed-archive-dot, .carousel-nav`);
-        if (isClickable) cursorElement.classList.add('hover-active');
-        else cursorElement.classList.remove('hover-active');
-    }
-});
-
 /* =========================================
    8. DYNAMIC 3D HOVER (Fisheye Reflection)
    ========================================= */
@@ -764,7 +920,7 @@ const MODEL_SCALE = 0.7;
 const CLOSE_DELAY = 500;
 
 let scene, camera, renderer, loader, raycaster;
-let globalEnvMap = null; 
+let globalEnvMap = null;
 let currentWrapper = null;
 let currentModel = null;
 let modelCache = {};
@@ -792,20 +948,20 @@ function init3D() {
     canvas.style.filter = 'blur(10px)';
 
     scene = new THREE.Scene();
-    
+
     renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0); 
+    renderer.setClearColor(0x000000, 0);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.9; 
+    renderer.toneMappingExposure = 0.9;
 
     new THREE.RGBELoader()
         .setPath(ASSET_PATH)
         .load('world.hdr', function (texture) {
-            texture.mapping = THREE.EquirectangularReflectionMapping; 
-            globalEnvMap = texture; 
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            globalEnvMap = texture;
             scene.environment = texture;
         });
 
@@ -826,7 +982,10 @@ function init3D() {
     raycaster = new THREE.Raycaster();
 
     animate3D();
-    window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('resize', () => {
+    onWindowResize(); // Your existing 3D resize
+    updateScrollShadows(); // <--- ADD THIS
+}, false);
 }
 
 function applyFisheyeEffect(geometry) {
@@ -838,7 +997,7 @@ function applyFisheyeEffect(geometry) {
     const n = new THREE.Vector3();
     const sphereNormal = new THREE.Vector3();
 
-    const tiltY = -0.25; 
+    const tiltY = -0.25;
     const curvature = 0.1;
 
     for (let i = 0; i < positionAttribute.count; i++) {
@@ -931,7 +1090,7 @@ function loadModel(filename) {
         const m = gltf.scene;
         const box = new THREE.Box3().setFromObject(m);
         const center = box.getCenter(new THREE.Vector3());
-        m.position.sub(center); 
+        m.position.sub(center);
         m.traverse(c => {
             if (c.isMesh) {
                 c.geometry = c.geometry.clone();
@@ -941,7 +1100,7 @@ function loadModel(filename) {
         modelCache[filename] = m;
         const group = new THREE.Group();
         group.add(m.clone());
-        spawn(group); 
+        spawn(group);
     });
 }
 
@@ -1035,10 +1194,10 @@ function getClosestDot(x, y) {
     let minDist = Infinity;
     activeDots.forEach(dot => {
         const rect = dot.element.getBoundingClientRect();
-        const dist = Math.hypot(x - (rect.left + rect.width/2), y - (rect.top + rect.height/2));
+        const dist = Math.hypot(x - (rect.left + rect.width / 2), y - (rect.top + rect.height / 2));
         if (dist < minDist) { minDist = dist; closest = dot; }
     });
-    return minDist < 60 ? closest : null; 
+    return minDist < 60 ? closest : null;
 }
 
 function triggerPulse(x, y) {
@@ -1059,8 +1218,8 @@ window.addEventListener('touchstart', (e) => {
     // 1. 3D Model Dot
     if (target && target.element.dataset.glb) {
         didTouchHitDot = true;
-        e.preventDefault(); 
-        
+        e.preventDefault();
+
         if (activeDot === target.element && isHovering) {
             interactionType = 'existing-model';
         } else {
@@ -1074,15 +1233,15 @@ window.addEventListener('touchstart', (e) => {
         isDragging = true;
         previousMouse = { x: t.clientX, y: t.clientY };
         rotVelocity = { x: 0, y: 0 };
-    } 
+    }
     // 2. Audio Dot
     else if (target && target.hasAudio) {
         didTouchHitDot = true;
         e.preventDefault();
-        
+
         if (currentAudioDot === target) interactionType = 'audio-open';
         else interactionType = 'audio-play';
-        activeDot = target.element; 
+        activeDot = target.element;
     }
     // 3. Empty Space
     else {
@@ -1097,7 +1256,7 @@ window.addEventListener('touchmove', (e) => {
         if (Math.hypot(dx, dy) > 7) hasMoved = true;
 
         if (currentModel && isHovering) {
-            e.preventDefault(); 
+            e.preventDefault();
             rotVelocity.x += dx * 0.003;
             rotVelocity.y += dy * 0.003;
             previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -1107,7 +1266,7 @@ window.addEventListener('touchmove', (e) => {
 
 window.addEventListener('touchend', (e) => {
     if (didTouchHitDot) e.preventDefault();
-    const t = e.changedTouches[0]; 
+    const t = e.changedTouches[0];
 
     // AUDIO LOGIC
     if (interactionType === 'audio-play') {
@@ -1142,8 +1301,8 @@ window.addEventListener('touchend', (e) => {
                 isHovering = false;
                 activeDot.classList.remove('is-active-3d');
             }
-        } 
-    } 
+        }
+    }
     else if (interactionType === 'new-dot') {
         if (hasMoved) {
             isHovering = false;
@@ -1155,7 +1314,7 @@ window.addEventListener('touchend', (e) => {
             triggerPulse(t.clientX, t.clientY);
             isHovering = true;
         }
-    } 
+    }
 
     // EMPTY SPACE
     else if (interactionType === 'empty') {
@@ -1175,7 +1334,7 @@ window.addEventListener('touchend', (e) => {
     isDragging = false;
     interactionType = null;
     didTouchHitDot = false;
-    hasMoved = false; 
+    hasMoved = false;
 }, { passive: false });
 
 document.addEventListener('visibilitychange', () => {
@@ -1187,7 +1346,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* =========================================
-   GLOBAL PROJECT SWIPE (TOUCH & MOUSE)
+   10. GLOBAL PROJECT SWIPE (TOUCH & MOUSE)
    ========================================= */
 const projectOverlay = document.getElementById('project-overlay');
 
@@ -1212,7 +1371,7 @@ function handleSwipeEnd(x, y, target) {
 
     // B. SAFETY: Ignore if user is highlighting text (Desktop specific)
     const selection = window.getSelection().toString();
-    if (selection.length > 0) return; 
+    if (selection.length > 0) return;
 
     // C. CALCULATE MOVEMENT
     const diffX = swipeStartX - x;
