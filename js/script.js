@@ -606,6 +606,7 @@ function openProject(folderName) {
             addMetaRow("Place",     project.place);
             addMetaRow("Institution",   project.institution,   true); 
             addMetaRow("Credits", project.credits, true);
+            addMetaRow("Link", project.website_link, true);
         }
 
         // 3. Populate Visual Column (MERGED CAROUSEL LOGIC)

@@ -412,11 +412,9 @@ header {
 
 /* --- B. ABOUT / BIO --- */
 .size-about { 
-    width: 500px; max-width: 90%; height: auto; max-height: 80vh; 
+    max-width: 500px; height: auto; max-height: 80vh; 
     padding: 20px; display: flex; flex-direction: column;
 }
-/* Note: Bio text styling handled via generic typography rules */
-
 
 /* --- C. PROJECT (3-COLUMN CARD) --- */
 .project-grid {
@@ -486,7 +484,7 @@ header {
 /* Project Typography */
 .col-meta h2 { font-size: 1.6rem; margin-top: 0; font-weight: 400; line-height: 1.2; }
 .meta-data p { font-size: 0.9rem; color: #666; margin: 5px 0; }
-.col-desc p { font-size: 1rem; line-height: 1.5; margin-top: 0; }
+.col-desc p { font-size: 1rem; line-height: 1.5}
 
 
 /* =========================================
