@@ -605,27 +605,19 @@ function convertToDirectLink(url) {
     return url;
 }
 
-// Helper: Carousel Builder (Logic from previous step)
-function initCarousel(container, images) {
-    container.innerHTML = ''; // Clear
+// Helper: Carousel Builder with 15/70/15 zones + Hover Shadows
+function initCarousel(container, images, linkUrl) {
+    container.innerHTML = ''; 
 
-    // Create Image
+    // 1. The Image (Visual)
     const imgElement = document.createElement('img');
     imgElement.src = images[0];
     imgElement.className = "visual-content carousel-img";
+    if (linkUrl) imgElement.classList.add('website-link-img');
     container.appendChild(imgElement);
 
-    // Create Invisible Hover Zones
-    const leftZone = document.createElement('div');
-    leftZone.className = "carousel-click-zone zone-left";
-    const rightZone = document.createElement('div');
-    rightZone.className = "carousel-click-zone zone-right";
-    container.appendChild(leftZone);
-    container.appendChild(rightZone);
-
-    // Logic
+    // 2. Logic: Indexing
     let currentIndex = 0;
-
     function updateImage() {
         imgElement.style.opacity = 0.5;
         setTimeout(() => {
@@ -633,18 +625,85 @@ function initCarousel(container, images) {
             imgElement.style.opacity = 1;
         }, 200);
     }
-    function goNext() { currentIndex = (currentIndex + 1) % images.length; updateImage(); }
-    function goPrev() { currentIndex = (currentIndex - 1 + images.length) % images.length; updateImage(); }
+    function goNext(e) { if(e) e.stopPropagation(); currentIndex = (currentIndex + 1) % images.length; updateImage(); }
+    function goPrev(e) { if(e) e.stopPropagation(); currentIndex = (currentIndex - 1 + images.length) % images.length; updateImage(); }
 
-    // Events
+    // 3. Create Shadows (Hidden by default)
+    const shadowLeft = document.createElement('div');
+    shadowLeft.className = "carousel-shadow-overlay shadow-left";
+    
+    const shadowRight = document.createElement('div');
+    shadowRight.className = "carousel-shadow-overlay shadow-right";
+    
+    container.appendChild(shadowLeft);
+    container.appendChild(shadowRight);
+
+    // 4. The Zones (15% | 70% | 15%)
+    
+    // LEFT ZONE
+    const leftZone = document.createElement('div');
+    leftZone.className = "carousel-click-zone";
+    leftZone.style.cssText = "position:absolute; top:0; left:0; height:100%; width:15%; z-index:20; cursor:none;";
+    leftZone.onclick = goPrev;
+
+    // RIGHT ZONE
+    const rightZone = document.createElement('div');
+    rightZone.className = "carousel-click-zone";
+    rightZone.style.cssText = "position:absolute; top:0; right:0; height:100%; width:15%; z-index:20; cursor:none;";
+    rightZone.onclick = goNext;
+
+    // CENTER ZONE
+    const centerZone = document.createElement('a');
+    centerZone.style.cssText = "position:absolute; top:0; left:15%; height:100%; width:70%; z-index:20; cursor:none; display:block;";
+    
+    if (linkUrl) {
+        centerZone.href = linkUrl;
+        centerZone.target = "_blank";
+        centerZone.style.cursor = "pointer";
+    } else {
+        centerZone.removeAttribute('href');
+        centerZone.style.pointerEvents = "none"; 
+    }
+
+    container.appendChild(leftZone);
+    container.appendChild(rightZone);
+    container.appendChild(centerZone);
+
+    // 5. Events (Cursors + Shadows)
     const cursor = document.getElementById('custom-cursor');
-    rightZone.addEventListener('mouseenter', () => cursor.classList.add('cursor-arrow-next'));
-    rightZone.addEventListener('mouseleave', () => cursor.classList.remove('cursor-arrow-next'));
-    rightZone.addEventListener('click', goNext);
+    if (cursor) {
+        // RIGHT HOVER
+        rightZone.addEventListener('mouseenter', () => {
+            cursor.classList.add('cursor-arrow-next');
+            shadowRight.style.opacity = '1'; // Show Shadow
+        });
+        rightZone.addEventListener('mouseleave', () => {
+            cursor.classList.remove('cursor-arrow-next');
+            shadowRight.style.opacity = '0'; // Hide Shadow
+        });
 
-    leftZone.addEventListener('mouseenter', () => cursor.classList.add('cursor-arrow-prev'));
-    leftZone.addEventListener('mouseleave', () => cursor.classList.remove('cursor-arrow-prev'));
-    leftZone.addEventListener('click', goPrev);
+        // LEFT HOVER
+        leftZone.addEventListener('mouseenter', () => {
+            cursor.classList.add('cursor-arrow-prev');
+            shadowLeft.style.opacity = '1'; // Show Shadow
+        });
+        leftZone.addEventListener('mouseleave', () => {
+            cursor.classList.remove('cursor-arrow-prev');
+            shadowLeft.style.opacity = '0'; // Hide Shadow
+        });
+        
+        // CENTER HOVER
+        if (linkUrl) {
+            centerZone.addEventListener('mouseenter', () => {
+                cursor.classList.add('hover-active');
+                imgElement.classList.add('hover-active');
+            });
+            centerZone.addEventListener('mouseleave', () => {
+                cursor.classList.remove('hover-active');
+                imgElement.classList.remove('hover-active');
+            });
+        }
+    }
 }
 
 
@@ -704,11 +763,11 @@ function openProject(folderName) {
             addMetaRow("Place", project.place);
             addMetaRow("Institution", project.institution, true);
             addMetaRow("Credits", project.credits, true);
-            if (project.website_link && project.website_link.trim() !== "") {
-                const url = project.website_link.trim();
-                // We pass the HTML string directly instead of plain text
-                const linkHTML = `<a href="${url}" target="_blank" class="link-interlaced" title="Open Website"></a>`;
-                
+            const linkData = project.link || project.website_link;
+            
+            if (linkData && linkData.trim() !== "") {
+                const url = linkData.trim();
+                const linkHTML = `<a href="${url}" target="_blank" class="link-interlaced" title="Visit Website"></a>`;
                 addMetaRow("Link", linkHTML, true);
             }
         }
@@ -721,71 +780,49 @@ function openProject(folderName) {
 
             // HELPER: Check for valid strings
             const has = (str) => str && str.trim() !== "";
-            const getYouTubeID = (url) => {
-                const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-                return (match && match[2].length === 11) ? match[2] : null;
-            };
-
-            // --- A. VIDEO (Stays separate at the top) ---
-            if (has(project.video)) {
-                const videoID = getYouTubeID(project.video.trim());
-                if (videoID) {
-                    const vidWrapper = document.createElement('div');
-                    vidWrapper.className = "video-wrapper";
-                    // Style: 16/9 aspect ratio, black background
-                    vidWrapper.style.cssText = "width:100%; aspect-ratio:16/9; background:black; flex-shrink:0; margin-bottom:20px;";
-                    vidWrapper.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoID}?rel=0" frameborder="0" allowfullscreen style="width:100%; height:100%;"></iframe>`;
-                    visualContainer.appendChild(vidWrapper);
-                }
-            }
+            const projectLink = (project.link || project.website_link || "").trim();
 
             // --- B. PREPARE IMAGES (Merge Title + Carousel) ---
             let allSlides = [];
-
-            // 1. Add Title Image (First)
-            // We use the case-insensitive search just to be safe
-            const keys = Object.keys(project);
-            const imageKey = keys.find(key => key.trim().toLowerCase() === 'title_image');
-            if (imageKey && has(project[imageKey])) {
-                const titleImgUrl = project[imageKey].split(',')[0].trim();
-                allSlides.push(convertToDirectLink(titleImgUrl));
+            // 1. Title Image (Always first)
+            if (has(project.title_image)) {
+                allSlides.push(convertToDirectLink(project.title_image.trim()));
             }
 
-            // 2. Add Carousel Images (After)
+            // 2. Carousel Images (Appended after)
             if (has(project.carousel)) {
                 const carouselUrls = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
                 allSlides = allSlides.concat(carouselUrls);
             }
 
-            // --- C. RENDER THE CAROUSEL ---
+            // --- B. RENDER ---
             if (allSlides.length > 0) {
-                // Create the container
                 const carouselWrapper = document.createElement('div');
                 carouselWrapper.className = 'carousel-container';
-
-                // Style: Fill the width, but restrict height so it doesn't overflow the screen
-                // 'flex-shrink: 0' ensures it doesn't get squashed if there is also a video
-                carouselWrapper.style.cssText = "width:100%; height:100%; min-height:300px; position:relative; flex-shrink:0;";
-
+                carouselWrapper.style.cssText = "width:100%; height:100%; min-height:300px; position:relative; flex-shrink:0;"; 
                 visualContainer.appendChild(carouselWrapper);
 
-                // Initialize with the MERGED list
-                initCarousel(carouselWrapper, allSlides);
-            }
-
-            // --- D. WEBSITE PREVIEW (Optional Fallback) ---
-            // Only add this if we have absolutely no other images/video
-            else if (has(project.website_image) && !has(project.video)) {
-                const img = document.createElement('img');
-                img.src = convertToDirectLink(project.website_image.trim());
-                img.className = "visual-content website-link-img";
-                if (has(project.website_link)) {
-                    img.onclick = () => window.open(project.website_link.trim(), '_blank');
+                // SITUATION 1: Single Image (No Arrows)
+                if (allSlides.length === 1) {
+                    const img = document.createElement('img');
+                    img.src = allSlides[0];
+                    img.className = "visual-content";
+                    
+                    if (projectLink) {
+                        // Apply the HOVER style you already set up (.website-link-img)
+                        img.classList.add('website-link-img');
+                        img.onclick = () => window.open(projectLink, '_blank');
+                    }
+                    carouselWrapper.appendChild(img);
                 }
-                visualContainer.appendChild(img);
+                
+                // SITUATION 2: Multiple Images (Carousel + Potential Link)
+                else {
+                    // We pass the link to the initCarousel function we just updated
+                    initCarousel(carouselWrapper, allSlides, projectLink);
+                }
             }
         }
-
         projectOverlay.style.display = "flex";
         setTimeout(updateScrollShadows, 50);
     }

@@ -555,6 +555,18 @@ header {
     flex-direction: column;
 }
 
+.contact-me {
+    display:flex;
+    background-color: #002FA7;
+    color: red;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.contact-me:hover {
+    text-shadow: 0 0 7px 2px rgb(0, 48, 168, 1);
+}
+
 /* --- C. PROJECT (3-COLUMN CARD) --- */
 .project-grid {
     display: flex; 
@@ -720,6 +732,22 @@ header {
     align-items: flex-start;
 }
 
+.carousel-img {
+    /* Smoothly animate the blur and opacity */
+    transition: filter 0.5s ease, opacity 0.5s ease;
+    
+    /* Default State (Clear) */
+    filter: blur(0px);
+    opacity: 1;
+    transform: translateZ(0); /* Hardware acceleration helper */
+}
+
+/* Loading State (Blurred) */
+.carousel-img.is-loading {
+    filter: blur(20px); /* Heavy blur like the intro */
+    opacity: 0.8;       /* Slight fade, but not white-out */
+}
+
 /* Invisible Cursor Zones */
 .carousel-click-zone {
     position: absolute;
@@ -751,6 +779,28 @@ header {
 .project-nav-btn:hover { opacity: 1; transform: translateY(-50%) translateX(5px); }
 .project-nav-btn.prev-btn:hover { transform: translateY(-50%) translateX(-5px); }
 
+.carousel-shadow-overlay {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 15%; /* Matches the width of your click zones */
+    pointer-events: none; /* Let clicks pass through */
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease;
+    z-index: 19; /* Above image, below click zones */
+}
+
+/* Left Shadow: Fades from Dark to Transparent */
+.shadow-left {
+    left: 0;
+    background: linear-gradient(to right, rgba(255, 255, 255, 1), transparent);
+}
+
+/* Right Shadow: Fades from Dark to Transparent */
+.shadow-right {
+    right: 0;
+    background: linear-gradient(to left, rgba(255, 255, 255, 1), transparent);
+}
 /* =========================================
    INTERLACED CIRCLES LINK (Symbol)
    ========================================= */
@@ -835,6 +885,12 @@ header {
         height: auto;
         max-height: none; /* Remove desktop restriction */
         object-fit: contain;
+    }
+
+    /* Mobile Carousel Override */
+    .carousel-container {
+        height: auto !important; /* Grow with the image! */
+        display: block;          /* Ensure it wraps the content */
     }
 
     .prev-btn { left: 20px; right: auto; }
