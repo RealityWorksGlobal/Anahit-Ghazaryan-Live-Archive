@@ -1,8 +1,8 @@
 /* =========================================
    1. GLOBAL CONFIGURATION & VARIABLES
    ========================================= */
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv";
-const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv";
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv&t=" + Date.now();
+const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv&t=" + Date.now();
 
 // PATHS
 const ASSET_PATH = './assets/';
@@ -16,6 +16,7 @@ let bioLoaded = false;
 let projectsLoaded = false;
 let currentAudioDot = null;
 let currentActiveList = [];
+let currentProjectAudio = null;
 
 /* =========================================
    2. INITIALIZATION & DATA LOADING
@@ -42,6 +43,21 @@ Papa.parse(sheetURL, {
 
         // Start Physics Loop
         requestAnimationFrame(animateDots);
+
+        // Check if there is a hash (e.g. #My%20Project)
+        const rawHash = window.location.hash.replace('#', '');
+        
+        if (rawHash) {
+            const target = decodeURIComponent(rawHash); // Turn %20 back into spaces
+            
+            if (target === 'archive') {
+                openArchive();
+            } else {
+                // Try to open the project immediately
+                // The openProject function safeguards against invalid names automatically
+                openProject(target);
+            }
+        }
 
         // Reveal Site
         window.hideLoadingScreen();
@@ -187,7 +203,7 @@ function renderScene(data) {
    4. PHYSICS ENGINE & ANIMATION LOOP
    ========================================= */
 const SENSITIVITY_RADIUS = 80;
-const AUDIO_RADIUS = 80;
+const AUDIO_RADIUS = 150;
 const MAX_SCALE = 1.1;
 
 function animateDots() {
@@ -513,12 +529,37 @@ function filterByTag(selectedTag, buttonElement) {
 // Navigation Memory
 let wasArchiveOpenBefore = false;
 
+
 function closeAllOverlays() {
+    // 1. STOP AUDIO (Cleanup)
+    if (currentProjectAudio) {
+        currentProjectAudio.pause();
+        currentProjectAudio = null; 
+    }
+
+    // 2. HIDE OVERLAYS
     ['archive-overlay', 'project-overlay', 'about-overlay'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
-    if (cursorElement) cursorElement.classList.remove('cursor-loading');
+
+    // 3. RESET CURSOR
+    if (cursorElement) {
+        cursorElement.classList.remove('cursor-loading');
+        cursorElement.classList.remove('hover-active'); // Safety clear
+    }
+
+    // 4. CLEAN UP SCROLL SHADOWS (Important!)
+    // If we don't do this, floating white bars might stay on screen
+    if (typeof activeShadows !== 'undefined') {
+        activeShadows.forEach(s => s.remove());
+        activeShadows = [];
+    }
+    
+    // 5. RESET 3D SCENE (If you have this function)
+    if (typeof resetScene === 'function') {
+        resetScene();
+    }
 }
 
 function openArchive() {
@@ -605,7 +646,7 @@ function convertToDirectLink(url) {
     return url;
 }
 
-// Helper: Carousel Builder with 15/70/15 zones + Hover Shadows
+// Helper: Carousel Builder with 15/70/15 zones + Hover Shadows + Blur & Preload
 function initCarousel(container, images, linkUrl) {
     container.innerHTML = ''; 
 
@@ -616,30 +657,57 @@ function initCarousel(container, images, linkUrl) {
     if (linkUrl) imgElement.classList.add('website-link-img');
     container.appendChild(imgElement);
 
-    // 2. Logic: Indexing
+    // 2. Logic: Indexing & Preloading (UPDATED ENGINE)
     let currentIndex = 0;
+    
+    // A. Silent Preloader
+    const preload = (idx) => {
+        if (images[idx]) {
+            const loader = new Image();
+            loader.src = images[idx];
+        }
+    };
+    // Preload neighbors immediately
+    preload(1);
+    preload(images.length - 1);
+
+    // B. New Update Function (Blur + Preload Wait)
     function updateImage() {
-        imgElement.style.opacity = 0.5;
-        setTimeout(() => {
-            imgElement.src = images[currentIndex];
-            imgElement.style.opacity = 1;
-        }, 200);
+        // Start Blur
+        imgElement.classList.add('is-loading');
+
+        // Prepare next image in background
+        const nextSrc = images[currentIndex];
+        const tempLoader = new Image();
+        tempLoader.src = nextSrc;
+        
+        tempLoader.onload = () => {
+            // Swap only when ready
+            imgElement.src = nextSrc;
+            
+            // Remove Blur (small timeout ensures transition plays)
+            setTimeout(() => {
+                imgElement.classList.remove('is-loading');
+            }, 50);
+
+            // Preload next neighbors for future clicks
+            preload((currentIndex + 1) % images.length);
+            preload((currentIndex - 1 + images.length) % images.length);
+        };
     }
+
     function goNext(e) { if(e) e.stopPropagation(); currentIndex = (currentIndex + 1) % images.length; updateImage(); }
     function goPrev(e) { if(e) e.stopPropagation(); currentIndex = (currentIndex - 1 + images.length) % images.length; updateImage(); }
 
     // 3. Create Shadows (Hidden by default)
     const shadowLeft = document.createElement('div');
     shadowLeft.className = "carousel-shadow-overlay shadow-left";
-    
     const shadowRight = document.createElement('div');
     shadowRight.className = "carousel-shadow-overlay shadow-right";
-    
     container.appendChild(shadowLeft);
     container.appendChild(shadowRight);
 
     // 4. The Zones (15% | 70% | 15%)
-    
     // LEFT ZONE
     const leftZone = document.createElement('div');
     leftZone.className = "carousel-click-zone";
@@ -675,21 +743,21 @@ function initCarousel(container, images, linkUrl) {
         // RIGHT HOVER
         rightZone.addEventListener('mouseenter', () => {
             cursor.classList.add('cursor-arrow-next');
-            shadowRight.style.opacity = '1'; // Show Shadow
+            shadowRight.style.opacity = '1';
         });
         rightZone.addEventListener('mouseleave', () => {
             cursor.classList.remove('cursor-arrow-next');
-            shadowRight.style.opacity = '0'; // Hide Shadow
+            shadowRight.style.opacity = '0';
         });
 
         // LEFT HOVER
         leftZone.addEventListener('mouseenter', () => {
             cursor.classList.add('cursor-arrow-prev');
-            shadowLeft.style.opacity = '1'; // Show Shadow
+            shadowLeft.style.opacity = '1';
         });
         leftZone.addEventListener('mouseleave', () => {
             cursor.classList.remove('cursor-arrow-prev');
-            shadowLeft.style.opacity = '0'; // Hide Shadow
+            shadowLeft.style.opacity = '0';
         });
         
         // CENTER HOVER
@@ -772,99 +840,128 @@ function openProject(folderName) {
             }
         }
 
-        // 3. Populate Visual Column (MERGED CAROUSEL LOGIC)
+        // 3. Populate Visual Column
         const visualContainer = document.getElementById('popup-visual-container');
         if (visualContainer) {
-            visualContainer.innerHTML = ''; // Clear old content
-            visualContainer.className = "col-visual";
+            visualContainer.innerHTML = ''; 
+            visualContainer.className = "col-visual"; 
 
-            // HELPER: Check for valid strings
-            const has = (str) => str && str.trim() !== "";
-            const projectLink = (project.link || project.website_link || "").trim();
-
-            // --- B. PREPARE IMAGES (Merge Title + Carousel) ---
-            let allSlides = [];
-            // 1. Title Image (Always first)
-            if (has(project.title_image)) {
-                allSlides.push(convertToDirectLink(project.title_image.trim()));
+            // Kill any previous audio just in case
+            if (currentProjectAudio) {
+                currentProjectAudio.pause();
+                currentProjectAudio = null;
             }
 
-            // 2. Carousel Images (Appended after)
-            if (has(project.carousel)) {
+            // --- A. AUDIO SETUP ---
+
+            const projectLink = (project.link || project.website_link || "").trim();
+            
+            // --- FIX: USE THE SAME LOGIC AS THE DOTS ---
+            const audioFilename = (project.audio || "").trim();
+            // If filename exists, combine it with the global ASSET_PATH ('./assets/')
+            const audioUrl = audioFilename ? ASSET_PATH + audioFilename : "";
+
+            if (audioUrl) {
+                currentProjectAudio = new Audio(audioUrl);
+                currentProjectAudio.loop = true;
+                currentProjectAudio.volume = 0; // Start silent
+                // Add error listener to prevent crashes if file is missing
+                currentProjectAudio.addEventListener('error', (e) => {
+                    console.warn("Audio file not found (Popup):", audioUrl);
+                });
+            }
+
+            // --- B. IMAGES & CAROUSEL ---
+            let allSlides = [];
+            if (project.title_image && project.title_image.trim() !== "") {
+                allSlides.push(convertToDirectLink(project.title_image.trim()));
+            }
+            if (project.carousel && project.carousel.trim() !== "") {
                 const carouselUrls = project.carousel.split(',').map(u => convertToDirectLink(u.trim()));
                 allSlides = allSlides.concat(carouselUrls);
             }
 
-            // --- B. RENDER ---
+            // --- C. RENDER ---
             if (allSlides.length > 0) {
                 const carouselWrapper = document.createElement('div');
-                carouselWrapper.className = 'carousel-container';
-                carouselWrapper.style.cssText = "width:100%; height:100%; min-height:300px; position:relative; flex-shrink:0;"; 
+                carouselWrapper.className = 'carousel-container'; 
+                carouselWrapper.style.cssText = "position:relative; flex-shrink:0; min-height:300px;"; 
+                
                 visualContainer.appendChild(carouselWrapper);
 
-                // SITUATION 1: Single Image (No Arrows)
+                // --- AUDIO FADE LOGIC (Crash-Proof) ---
+                if (currentProjectAudio) {
+                    let fadeInterval;
+                    const audio = currentProjectAudio; // Local reference
+
+                    const fadeIn = () => {
+                        clearInterval(fadeInterval);
+                        // Promise handling: ensures audio is ready to play
+                        const playPromise = audio.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.log("Audio autoplay prevented:", error);
+                            });
+                        }
+                        
+                        fadeInterval = setInterval(() => {
+                            // Math.min ensures we never go above 1.0
+                            if (audio.volume < 1.0) {
+                                audio.volume = Math.min(1.0, audio.volume + 0.05);
+                            } else {
+                                clearInterval(fadeInterval);
+                            }
+                        }, 50);
+                    };
+
+                    const fadeOut = () => {
+                        clearInterval(fadeInterval);
+                        fadeInterval = setInterval(() => {
+                            // Math.max ensures we never go below 0.0
+                            if (audio.volume > 0.0) {
+                                audio.volume = Math.max(0.0, audio.volume - 0.05);
+                            } else {
+                                clearInterval(fadeInterval);
+                                audio.pause();
+                                audio.currentTime = 0; // Reset track
+                            }
+                        }, 50);
+                    };
+
+                    // Attach Events
+                    carouselWrapper.addEventListener('mouseenter', fadeIn);
+                    carouselWrapper.addEventListener('mouseleave', fadeOut);
+                    carouselWrapper.addEventListener('touchstart', fadeIn);
+                    carouselWrapper.addEventListener('touchend', fadeOut);
+                }
+
+                // --- RENDER VISUALS ---
                 if (allSlides.length === 1) {
                     const img = document.createElement('img');
                     img.src = allSlides[0];
                     img.className = "visual-content";
-                    
                     if (projectLink) {
-                        // Apply the HOVER style you already set up (.website-link-img)
                         img.classList.add('website-link-img');
                         img.onclick = () => window.open(projectLink, '_blank');
                     }
                     carouselWrapper.appendChild(img);
-                }
-                
-                // SITUATION 2: Multiple Images (Carousel + Potential Link)
-                else {
-                    // We pass the link to the initCarousel function we just updated
+                } else {
                     initCarousel(carouselWrapper, allSlides, projectLink);
                 }
             }
         }
         projectOverlay.style.display = "flex";
-        setTimeout(updateScrollShadows, 50);
+
+        // Wait 50ms for everything to settle
+        setTimeout(() => {
+            // 1. Shadows
+            if (typeof updateScrollShadows === 'function') updateScrollShadows();
+
+            
+        }, 50);
     }
 }
 
-// Navigation Logic
-function goToNextProject(direction) {
-    // 1. Get the current folder from URL
-    const rawHash = window.location.hash.replace('#', '');
-    
-    // FIX: Decode the URL (Turn "Project%20Name" back into "Project Name")
-    const currentFolder = decodeURIComponent(rawHash);
-    
-    if (!currentFolder) return;
-
-    // 2. Find position in the CURRENT ACTIVE LIST (The Filtered List)
-    let currentIndex = currentActiveList.findIndex(p => p.folder === currentFolder);
-    let listToUse = currentActiveList;
-
-    // 3. Fallback Logic (Only if something is truly wrong)
-    // If the project isn't in the active list (rare), check the full database
-    if (currentIndex === -1) {
-        // Try to find it in the main list so navigation doesn't break
-        const masterIndex = allProjectData.findIndex(p => p.folder === currentFolder);
-        if (masterIndex !== -1) {
-            listToUse = allProjectData;
-            currentIndex = masterIndex;
-        }
-    }
-
-    // 4. Calculate New Index (Looping)
-    if (currentIndex !== -1) {
-        let newIndex = currentIndex + direction;
-        
-        // Loop to start/end
-        if (newIndex >= listToUse.length) newIndex = 0;
-        if (newIndex < 0) newIndex = listToUse.length - 1;
-
-        // 5. Go!
-        openProject(listToUse[newIndex].folder);
-    }
-}
 
 // Close Logic
 function closeProject() {
@@ -879,6 +976,8 @@ function closeProject() {
     // If we came from Archive, re-open it. Otherwise go to Home.
     if (wasInArchive) openArchive();
 }
+
+
 
 /* =========================================
    7. EVENTS & CURSOR (OPTIMIZED)
@@ -1379,74 +1478,5 @@ document.addEventListener('visibilitychange', () => {
         activeDots.forEach(d => {
             if (d.audio && !d.audio.paused) d.audio.pause();
         });
-    }
-});
-
-/* =========================================
-   10. GLOBAL PROJECT SWIPE (TOUCH & MOUSE)
-   ========================================= */
-const projectOverlay = document.getElementById('project-overlay');
-
-// Variables to track movement
-let swipeStartX = 0;
-let swipeStartY = 0;
-
-// --- 1. UNIFIED HANDLERS ---
-
-function handleSwipeStart(x, y) {
-    swipeStartX = x;
-    swipeStartY = y;
-    isDragging = true;
-}
-
-function handleSwipeEnd(x, y, target) {
-    if (!isDragging) return;
-    isDragging = false;
-
-    // A. SAFETY: Ignore if swiping inside a Carousel (let the carousel handle it)
-    if (target.closest('.carousel-container')) return;
-
-    // B. SAFETY: Ignore if user is highlighting text (Desktop specific)
-    const selection = window.getSelection().toString();
-    if (selection.length > 0) return;
-
-    // C. CALCULATE MOVEMENT
-    const diffX = swipeStartX - x;
-    const diffY = swipeStartY - y;
-
-    // D. DETERMINE INTENT
-    // Rule: Movement must be mostly Horizontal (> Vertical) and at least 50px long
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-        if (diffX > 0) {
-            // Dragged Left -> Next Project
-            goToNextProject(1);
-        } else {
-            // Dragged Right -> Prev Project
-            goToNextProject(-1);
-        }
-    }
-}
-
-// --- 2. TOUCH LISTENERS (Mobile/Tablet) ---
-projectOverlay.addEventListener('touchstart', (e) => {
-    handleSwipeStart(e.changedTouches[0].screenX, e.changedTouches[0].screenY);
-}, { passive: true });
-
-projectOverlay.addEventListener('touchend', (e) => {
-    handleSwipeEnd(e.changedTouches[0].screenX, e.changedTouches[0].screenY, e.target);
-}, { passive: true });
-
-// --- 3. MOUSE LISTENERS (Desktop Click & Drag) ---
-projectOverlay.addEventListener('mousedown', (e) => {
-    // Only trigger on Left Click (button 0)
-    if (e.button === 0) {
-        handleSwipeStart(e.screenX, e.screenY);
-    }
-});
-
-// We attach 'mouseup' to window so it works even if you drag off the card
-window.addEventListener('mouseup', (e) => {
-    if (isDragging) {
-        handleSwipeEnd(e.screenX, e.screenY, e.target);
     }
 });

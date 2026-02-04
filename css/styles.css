@@ -214,9 +214,10 @@ header {
     padding: 10px 4px;
     pointer-events: auto;
     transition: transform 0.3s ease;
+
 }
 .title:hover {
-    transform: scale(1.05);
+    transform: scale(1.015);
 }
 
 /* The Red Header Dot (Archive Trigger) */
@@ -229,6 +230,7 @@ header {
     position: relative;
     animation: pulseGlow 4s infinite ease-in-out;
     transition: box-shadow 0.3s ease;
+    top: 1px;
 }
 #fixed-archive-dot:hover {
     box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1);
@@ -251,6 +253,53 @@ header {
     50% { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0); }
     100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
 }
+
+footer {
+    position: fixed;
+    bottom: 40px;
+    left: 40px;
+    transform: translate(-50%, -50%); 
+    max-width: 80%;
+    width: max-content;
+    z-index: 10001 !important; 
+    text-align: center;
+}
+
+/* The Red Header Dot (Archive Trigger) */
+#fixed-contact-dot {
+    width: 12px;
+    height: 12px;
+    background-color:white;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    animation: pulseGlow 4s infinite ease-in-out;
+    transition: box-shadow 0.8s ease;
+    top: 8px;
+}
+
+#fixed-contact-dot:hover {
+    box-shadow: 0 0 20px 8px rgba(255, 0, 0, 1);
+    animation: none;
+}
+#fixed-contact-dot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border-radius: 50%;
+}
+
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
+    50% { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0.2); }
+    100% { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
+}
+
 
 /* =========================================
    6. 3D SCENE DOTS
@@ -425,11 +474,21 @@ header {
    8. CONTENT LAYOUTS
    ========================================= */
 /* Custom width for Bio only */
-.type-bio {
-    min-width: 300px;   
-    width: 40%;
-    max-width: 700px;
-}       
+/* FORCE BIO WIDTH (Desktop) */
+/* We target the ID #about-overlay so this NEVER affects project cards */
+#about-overlay .glass-card {
+    width: 40vw !important;  /* Use 40% of the viewport width */
+    max-width: 700px;        /* Never get wider than 700px */
+    min-width: 400px;        /* Never get too skinny */
+    transform: translateX(-50%);
+}
+
+#bio-container {
+     user-select: text !important;
+    -webkit-user-select: text !important; /* Safari support */
+    cursor: text !important;
+}
+
 /* --- A. ARCHIVE & DATABASE --- */
 .type-archive .archive-layout {
     display: flex;
@@ -460,8 +519,8 @@ header {
 
 /* Faded state: Applied via JS */
 .database-wrapper.is-faded {
-    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 47, 167, 0.8), transparent 100%);
+    mask-image: linear-gradient(to bottom, rgba(0, 47, 167, 0.8), transparent 100%);
 }
 #artist-database {
     border-collapse: collapse; /* Removes gaps between borders */
@@ -545,28 +604,6 @@ header {
     color: black;
 }
 
-/* --- B. ABOUT / BIO --- */
-.size-about { 
-    max-width: 500px;
-    height: auto;
-    max-height: 80vh; 
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-}
-
-.contact-me {
-    display:flex;
-    background-color: #002FA7;
-    color: red;
-    text-decoration: none;
-    transition: all 0.2s ease-in-out;
-}
-
-.contact-me:hover {
-    text-shadow: 0 0 7px 2px rgb(0, 48, 168, 1);
-}
-
 /* --- C. PROJECT (3-COLUMN CARD) --- */
 .project-grid {
     display: flex; 
@@ -584,13 +621,29 @@ header {
     gap: 20px;
     height: 100%;
     padding-top: 10px;
+    
 }
 .col-meta { flex: 1; overflow-y: auto; padding-right: 10px; }
-.col-desc { user-select: text !important;
-    cursor: auto !important;
+.col-desc {
     flex: 1.5; 
     overflow-y: auto; 
-    padding-right: 10px; }
+    padding-right: 10px; 
+    cursor:none;
+}
+
+#popup-description, 
+#popup-description p, 
+#popup-description span{
+    /* Allow highlighting */
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    
+    /* BRING BACK THE SYSTEM CURSOR (Crucial!) */
+    cursor: text !important; 
+    
+    /* Ensure clicks pass through to the text */
+    pointer-events: auto !important; 
+}
 
 /* =========================================
    META DATA "STACKED" LAYOUT
@@ -620,7 +673,6 @@ header {
     border-bottom: 1.5px solid #e0e0e0; 
     padding-bottom: 4px;
     margin-bottom: 8px; /* Space between line and content */
-    
 
 }
 
@@ -630,6 +682,9 @@ header {
     font-weight: 400;
     color: var(--color-text);
     white-space: pre-wrap;
+     user-select: text !important;
+    -webkit-user-select: text !important; /* Safari support */
+    cursor: text !important;
 }
 
 /* Group 2: Visuals */
@@ -717,7 +772,7 @@ header {
     cursor: pointer;
     transition: transform 0.3s, box-shadow 0.3s;
 }
-.website-link-img:hover {
+.website-link-img:hover, .website-link-img.hover-active {
     transform: scale(1.005);
     box-shadow: 0 0 7px 2px rgba(0, 47, 167, 0.5);
 }
@@ -734,8 +789,7 @@ header {
 
 .carousel-img {
     /* Smoothly animate the blur and opacity */
-    transition: filter 0.5s ease, opacity 0.5s ease;
-    
+transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease;    
     /* Default State (Clear) */
     filter: blur(0px);
     opacity: 1;
@@ -759,25 +813,6 @@ header {
 }
 .zone-left { left: 0; }
 .zone-right { right: 0; }
-
-/* Project Navigation Arrows (Floating) */
-.project-nav-btn {
-    position: fixed;
-    top: 50%;
-    right: 20px; 
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    z-index: 9999; 
-    font-size: 3rem;
-    color: var(--color-blue);
-    opacity: 0.5;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.project-nav-btn.prev-btn { right: auto; left: 20px; }
-.project-nav-btn:hover { opacity: 1; transform: translateY(-50%) translateX(5px); }
-.project-nav-btn.prev-btn:hover { transform: translateY(-50%) translateX(-5px); }
 
 .carousel-shadow-overlay {
     position: absolute;
@@ -830,6 +865,7 @@ header {
 /* HOVER: Pull apart */
 .link-interlaced:hover::before { transform: translateX(-3px); box-shadow: 0 0 7px 2px rgba(0, 47, 167, 0.5);}
 .link-interlaced:hover::after { transform: translateX(3px); box-shadow: 0 0 7px 2px rgba(0, 47, 167, 0.5);}
+
 /* =========================================
    10. MOBILE & VERTICAL LAYOUT (RESPONSIVE)
    ========================================= */
@@ -842,7 +878,8 @@ header {
 
     }/* Custom width for Bio only */
 .type-bio {
-    width: 40%;        /* Stop using 85vw */
+    width: 85vw;
+    max-width: none !important;        /* Stop using 85vw */
     min-width: 300px;
 }
     .project-grid, 
