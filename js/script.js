@@ -141,7 +141,7 @@ function renderScene(data) {
         if (project.folder) {
             dot.dataset.folder = project.folder;
             dot.onclick = function (e) {
-                if (e.pointerType === 'touch') return;
+                if (e.pointerType === 'touch' || e.detail === 0) return; 
                 openProject(project.folder);
             };
         }
@@ -1347,14 +1347,13 @@ function triggerPulse(x, y) {
 
 window.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
-    triggerPulse(t.clientX, t.clientY);
     hasMoved = false;
     const target = getClosestDot(t.clientX, t.clientY);
 
     // 1. 3D Model Dot
     if (target && target.element.dataset.glb) {
         didTouchHitDot = true;
-        e.preventDefault();
+        e.preventDefault(); // Stop Ghost Click
 
         if (activeDot === target.element && isHovering) {
             interactionType = 'existing-model';
@@ -1370,18 +1369,31 @@ window.addEventListener('touchstart', (e) => {
         previousMouse = { x: t.clientX, y: t.clientY };
         rotVelocity = { x: 0, y: 0 };
     }
+    
     // 2. Audio Dot
     else if (target && target.hasAudio) {
         didTouchHitDot = true;
-        e.preventDefault();
+        e.preventDefault(); // Stop Ghost Click
 
         if (currentAudioDot === target) interactionType = 'audio-open';
         else interactionType = 'audio-play';
         activeDot = target.element;
     }
-    // 3. Empty Space
+
+    // 3. CLASSIC DOT (The Missing Logic!)
+    else if (target && target.hasFolder) {
+        didTouchHitDot = true;
+        e.preventDefault(); // Stop Ghost Click
+        
+        interactionType = 'classic-open';
+        activeDot = target.element;
+        triggerPulse(t.clientX, t.clientY);
+    }
+
+    // 4. Empty Space
     else {
         interactionType = 'empty';
+        triggerPulse(t.clientX, t.clientY);
     }
 }, { passive: false });
 
@@ -1401,7 +1413,7 @@ window.addEventListener('touchmove', (e) => {
 }, { passive: false });
 
 window.addEventListener('touchend', (e) => {
-    if (didTouchHitDot) e.preventDefault();
+    if (didTouchHitDot) e.preventDefault(); // Double protection against ghost clicks
     const t = e.changedTouches[0];
 
     // AUDIO LOGIC
@@ -1447,8 +1459,16 @@ window.addEventListener('touchend', (e) => {
                 activeDot = null;
             }
         } else {
+            // Success: Model is now loaded, waiting for second tap
             triggerPulse(t.clientX, t.clientY);
-            isHovering = true;
+        }
+    }
+
+    // CLASSIC LOGIC (New)
+    else if (interactionType === 'classic-open') {
+        if (!hasMoved) {
+            const dotData = activeDots.find(d => d.element === activeDot);
+            if (dotData && dotData.folder) openProject(dotData.folder);
         }
     }
 
