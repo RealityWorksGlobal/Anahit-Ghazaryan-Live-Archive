@@ -139,11 +139,15 @@ function renderScene(data) {
 
         const dot = document.createElement('div');
         dot.className = 'dot';
+        dot.style.setProperty('--delay', `-${Math.random() * 3}s`);
 
-        // 1. Folder Logic
+        // 1. Folder Logic (RESTORED DESKTOP CLICK)
         if (project.folder) {
             dot.dataset.folder = project.folder;
+            
+            // This handles the Desktop Mouse Click
             dot.onclick = function (e) {
+                // Ignore touch events here (they are handled by the global touch listener)
                 if (e.pointerType === 'touch' || e.detail === 0) return; 
                 openProject(project.folder);
             };
@@ -162,13 +166,27 @@ function renderScene(data) {
         if (audioFilename && audioFilename.trim() !== "") {
             dot.classList.add('has-audio');
 
-            // Construct path: ./assets/filename.wav
             const localAudioPath = ASSET_PATH + audioFilename.trim();
-
             audioObj = new Audio(localAudioPath);
-            audioObj.loop = true;
+            
+            audioObj.loop = false; // Strict No Loop
             audioObj.volume = 0;
             audioObj.preload = 'auto';
+
+            // Auto-Release when audio ends
+            audioObj.onended = () => {
+                const activeDotData = activeDots.find(d => d.audio === audioObj);
+                if (activeDotData) {
+                    activeDotData.audioFinished = true; 
+                    
+                    // If this was the active 3D model, hide it immediately
+                    if (activeDot === activeDotData.element) {
+                        isHovering = false;
+                        activeDot.classList.remove('is-active-3d');
+                        activeDot = null;
+                    }
+                }
+            };
 
             audioObj.addEventListener('error', (e) => {
                 console.warn("Audio file missing or blocked:", localAudioPath);
@@ -197,7 +215,8 @@ function renderScene(data) {
             folder: project.folder,
             hasFolder: !!project.folder,
             audio: audioObj,
-            hasAudio: !!audioObj
+            hasAudio: !!audioObj,
+            audioFinished: false
         });
     });
 }
@@ -225,59 +244,74 @@ function animateDots() {
     const localMouseY = isOverlayOpen ? -9999 : mouse.y;
 
     activeDots.forEach(dot => {
-        // A. 3D Freeze
+        
+        // --- A. MOVEMENT LOGIC ---
+        // Only move the dot if it is NOT the active 3D model.
+        // If it IS the active model, we just lock the position but continue to Audio logic.
+        
         if (dot.element.classList.contains('is-active-3d')) {
             dot.element.style.left = dot.x + '%';
             dot.element.style.top = dot.y + '%';
-            return;
+            // DO NOT RETURN HERE! WE NEED TO RUN THE AUDIO CHECK BELOW!
+        } else {
+            // Standard Physics Movement
+            const dotPixelX = (window.innerWidth * dot.x) / 100;
+            const dotPixelY = (window.innerHeight * dot.y) / 100;
+            const dist = Math.hypot(localMouseX - dotPixelX, localMouseY - dotPixelY);
+
+            let speedFactor = 1.0;
+            if (dist < SENSITIVITY_RADIUS) {
+                speedFactor = 1 - (1 - (dist / SENSITIVITY_RADIUS));
+            }
+
+            dot.x += dot.vx * speedFactor;
+            dot.y += dot.vy * speedFactor;
+
+            // Bounce
+            if (dot.x <= 2 || dot.x >= 98) dot.vx *= -1;
+            if (dot.y <= 2 || dot.y >= 98) dot.vy *= -1;
         }
 
-        // B. Position Math
+        // Recalculate distance for Audio/Visuals (Need this even if frozen)
         const dotPixelX = (window.innerWidth * dot.x) / 100;
         const dotPixelY = (window.innerHeight * dot.y) / 100;
         const dist = Math.hypot(localMouseX - dotPixelX, localMouseY - dotPixelY);
 
-        // C. Move Logic
-        let speedFactor = 1.0;
-        if (dist < SENSITIVITY_RADIUS) {
-            speedFactor = 1 - (1 - (dist / SENSITIVITY_RADIUS));
-        }
-
-        dot.x += dot.vx * speedFactor;
-        dot.y += dot.vy * speedFactor;
-
-        // Bounce
-        if (dot.x <= 2 || dot.x >= 98) dot.vx *= -1;
-        if (dot.y <= 2 || dot.y >= 98) dot.vy *= -1;
-
-        // D. Audio Logic (Volume Fading)
+        // --- B. AUDIO LOGIC ---
         if (dot.hasAudio && !isOverlayOpen) {
-            if (currentAudioDot && currentAudioDot.element === dot.element) {
-                return; // Skip to next dot
+            
+            // If user leaves the zone, reset the "Finished" flag so it can play again later
+            if (dist > AUDIO_RADIUS) {
+                dot.audioFinished = false;
+                if(dot.audio.paused) dot.audio.currentTime = 0;
             }
-            if (dist < AUDIO_RADIUS) {
-                let vol = 1 - (dist / AUDIO_RADIUS);
-                vol = Math.max(0, Math.min(1, vol));
 
-                if (dot.audio) {
-                    dot.audio.volume = vol;
-                    if (dot.audio.paused && vol > 0.01) {
-                        dot.audio.play().catch(e => { /* Ignore autoplay blocks */ });
+            // Play if inside radius AND track hasn't ended naturally
+            if (!dot.audioFinished) {
+                if (dist < AUDIO_RADIUS) {
+                    let vol = 1 - (dist / AUDIO_RADIUS);
+                    vol = Math.max(0, Math.min(1, vol));
+
+                    if (dot.audio) {
+                        dot.audio.volume = vol;
+                        if (dot.audio.paused && vol > 0.01) {
+                            dot.audio.play().catch(e => {});
+                        }
+                    }
+                } else {
+                    // Fade out/Stop
+                    if (dot.audio && !dot.audio.paused) {
+                        dot.audio.pause();
                     }
                 }
-            } else {
-                if (dot.audio && !dot.audio.paused) {
-                    dot.audio.pause();
-                    dot.audio.currentTime = 0;
-                }
-            }
+            } 
         }
 
-        // E. Visual Logic
+        // --- C. VISUAL SCALING ---
         let scale = 1;
         let shadowStyle = 'none';
 
-        if (dist < SENSITIVITY_RADIUS) {
+        if (dist < SENSITIVITY_RADIUS && !dot.audioFinished) {
             const proximity = 1 - (dist / SENSITIVITY_RADIUS);
             scale = 1 + (proximity * (MAX_SCALE - 1));
 
@@ -304,7 +338,8 @@ function animateDots() {
     requestAnimationFrame(animateDots);
 }
 
-// Global Mouse Tracker (Crucial for Physics)
+
+// Global Mouse Tracker
 document.addEventListener('mousemove', (e) => {
     mouse.x = e.clientX;
     mouse.y = e.clientY;
@@ -805,6 +840,12 @@ function initCarousel(container, images, linkUrl) {
 // MAIN FUNCTION: OPEN PROJECT
 function openProject(folderName) {
     if (!folderName) return;
+    if (activeDot) {
+        activeDot.classList.remove('is-active-3d');
+        activeDot = null;
+        isHovering = false;
+        // Note: We do NOT stop the audio here. We let it play out.
+    }
     const project = allProjectData.find(p => p.folder === folderName);
 
     if (project) {
@@ -814,6 +855,14 @@ function openProject(folderName) {
         closeAllOverlays(); // Close others
 
         const projectOverlay = document.getElementById('project-overlay');
+        if (projectOverlay) {
+            // FORCE SCROLL TO TOP
+            projectOverlay.scrollTop = 0; 
+            
+            // Also reset the internal wrapper if you have one
+            const wrapper = projectOverlay.querySelector('.project-content-wrapper'); // or whatever your inner div is
+            if (wrapper) wrapper.scrollTop = 0;
+        }
         if (isArchiveOpen) projectOverlay.setAttribute('data-from-archive', 'true');
         else projectOverlay.removeAttribute('data-from-archive');
 
@@ -1349,21 +1398,26 @@ function onWindowResize() {
 /* =========================================
    9. TOUCH LOGIC (Mobile Tap vs Drag)
    ========================================= */
-let interactionType = null;
-let didTouchHitDot = false;
-let hasMoved = false;
+let isTouchDrag = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let isScrolling = false;
 
+// Helper to find dot under finger
 function getClosestDot(x, y) {
     let closest = null;
     let minDist = Infinity;
+    const TOUCH_THRESHOLD = 80; 
+
     activeDots.forEach(dot => {
         const rect = dot.element.getBoundingClientRect();
         const dist = Math.hypot(x - (rect.left + rect.width / 2), y - (rect.top + rect.height / 2));
         if (dist < minDist) { minDist = dist; closest = dot; }
     });
-    return minDist < 60 ? closest : null;
+    return minDist < TOUCH_THRESHOLD ? closest : null;
 }
 
+// Visual feedback pulse
 function triggerPulse(x, y) {
     const pulse = document.createElement('div');
     pulse.className = 'touch-pulse';
@@ -1373,152 +1427,142 @@ function triggerPulse(x, y) {
     pulse.addEventListener('animationend', () => pulse.remove());
 }
 
+// 1. TOUCH START
 window.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    hasMoved = false;
-    const target = getClosestDot(t.clientX, t.clientY);
-
-    // 1. 3D Model Dot
-    if (target && target.element.dataset.glb) {
-        didTouchHitDot = true;
-        e.preventDefault(); // Stop Ghost Click
-
-        if (activeDot === target.element && isHovering) {
-            interactionType = 'existing-model';
-        } else {
-            interactionType = 'new-dot';
-            if (activeDot) activeDot.classList.remove('is-active-3d');
-            activeDot = target.element;
-            activeDot.classList.add('is-active-3d');
-            isHovering = true;
-            loadModel(target.element.dataset.glb);
-        }
-        isDragging = true;
-        previousMouse = { x: t.clientX, y: t.clientY };
-        rotVelocity = { x: 0, y: 0 };
-    }
+    // --- BLOCKER: If Overlay is Open, STOP EVERYTHING ---
+    const isOverlayOpen = document.getElementById('project-overlay').style.display === 'flex' ||
+                          document.getElementById('archive-overlay').style.display === 'flex' ||
+                          document.getElementById('about-overlay').style.display === 'flex';
     
-    // 2. Audio Dot
-    else if (target && target.hasAudio) {
-        didTouchHitDot = true;
-        e.preventDefault(); // Stop Ghost Click
+    if (isOverlayOpen) return; 
+    // ----------------------------------------------------
 
-        if (currentAudioDot === target) interactionType = 'audio-open';
-        else interactionType = 'audio-play';
-        activeDot = target.element;
-    }
-
-    // 3. CLASSIC DOT (The Missing Logic!)
-    else if (target && target.hasFolder) {
-        didTouchHitDot = true;
-        e.preventDefault(); // Stop Ghost Click
-        
-        interactionType = 'classic-open';
-        activeDot = target.element;
-        triggerPulse(t.clientX, t.clientY);
-    }
-
-    // 4. Empty Space
-    else {
-        interactionType = 'empty';
-        triggerPulse(t.clientX, t.clientY);
+    const t = e.touches[0];
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+    isTouchDrag = false;
+    isScrolling = false;
+    
+    // Check if we hit a 3D model to prep rotation
+    const targetDotData = getClosestDot(t.clientX, t.clientY);
+    if (targetDotData && activeDot === targetDotData.element && isHovering) {
+         isDragging = true; // Prep for rotation
+         previousMouse = { x: t.clientX, y: t.clientY };
+         rotVelocity = { x: 0, y: 0 };
     }
 }, { passive: false });
 
+// 2. TOUCH MOVE (The Smart "Scroll vs Rotate" Logic)
 window.addEventListener('touchmove', (e) => {
-    if (isDragging) {
-        const dx = e.touches[0].clientX - previousMouse.x;
-        const dy = e.touches[0].clientY - previousMouse.y;
-        if (Math.hypot(dx, dy) > 7) hasMoved = true;
+    // Check blocker again just in case
+    const isOverlayOpen = document.getElementById('project-overlay').style.display === 'flex' ||
+                          document.getElementById('archive-overlay').style.display === 'flex' ||
+                          document.getElementById('about-overlay').style.display === 'flex';
+    
+    if (isOverlayOpen) return;
 
-        if (currentModel && isHovering) {
-            e.preventDefault();
-            rotVelocity.x += dx * 0.003;
-            rotVelocity.y += dy * 0.003;
-            previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    
+    // If we moved significantly, mark it as a drag/scroll
+    if (Math.hypot(dx, dy) > 10) {
+        isTouchDrag = true;
+    }
+
+    // --- DIRECTION CHECK ---
+    // If Vertical movement is greater than Horizontal, assume SCROLLING.
+    if (Math.abs(dy) > Math.abs(dx)) {
+        isScrolling = true;
+        isDragging = false; // Cancel 3D rotation
+        return; // Allow native browser scroll (Do NOT preventDefault)
+    }
+
+    // If Horizontal movement is dominant AND we are on a 3D model, ROTATE.
+    if (isDragging && currentModel && isHovering && !isScrolling) {
+        e.preventDefault(); // Block browser swipe navigation
+        rotVelocity.x += dx * 0.003;
+        rotVelocity.y += dy * 0.003;
+        previousMouse = { x: t.clientX, y: t.clientY };
     }
 }, { passive: false });
 
+// 3. TOUCH END
 window.addEventListener('touchend', (e) => {
-    if (didTouchHitDot) e.preventDefault(); // Double protection against ghost clicks
+    isDragging = false; 
+
+    // --- BLOCKER: Stop clicks if overlay is open or if we scrolled ---
+    const isOverlayOpen = document.getElementById('project-overlay').style.display === 'flex' ||
+                          document.getElementById('archive-overlay').style.display === 'flex' ||
+                          document.getElementById('about-overlay').style.display === 'flex';
+
+    if (isOverlayOpen || isTouchDrag || isScrolling) return; 
+    // ----------------------------------------------------------------
+
     const t = e.changedTouches[0];
-
-    // AUDIO LOGIC
-    if (interactionType === 'audio-play') {
-        if (!hasMoved) {
-            if (currentAudioDot && currentAudioDot.audio) {
-                currentAudioDot.audio.pause();
-                currentAudioDot.audio.currentTime = 0;
-            }
-            const dotData = activeDots.find(d => d.element === activeDot);
-            if (dotData && dotData.audio) {
-                dotData.audio.volume = 1.0;
-                dotData.audio.play();
-                currentAudioDot = dotData;
-            }
-        }
-    }
-    else if (interactionType === 'audio-open') {
-        if (!hasMoved) {
-            if (currentAudioDot && currentAudioDot.audio) currentAudioDot.audio.pause();
-            const dotData = activeDots.find(d => d.element === activeDot);
-            if (dotData && dotData.folder) openProject(dotData.folder);
-            currentAudioDot = null;
-        }
-    }
-
-    // 3D LOGIC
-    else if (interactionType === 'existing-model') {
-        if (!hasMoved) {
-            triggerPulse(t.clientX, t.clientY);
-            if (activeDot && activeDot.dataset.folder) {
-                openProject(activeDot.dataset.folder);
-                isHovering = false;
-                activeDot.classList.remove('is-active-3d');
-            }
-        }
-    }
-    else if (interactionType === 'new-dot') {
-        if (hasMoved) {
+    const targetData = getClosestDot(t.clientX, t.clientY);
+    
+    // [EMPTY SPACE TAP] -> RESET
+    if (!targetData) {
+        if (activeDot) {
+            activeDot.classList.remove('is-active-3d');
+            activeDot = null;
             isHovering = false;
-            if (activeDot) {
-                activeDot.classList.remove('is-active-3d');
-                activeDot = null;
-            }
-        } else {
-            // Success: Model is now loaded, waiting for second tap
-            triggerPulse(t.clientX, t.clientY);
         }
+        activeDots.forEach(d => {
+            if(d.audio) {
+                d.audio.pause(); 
+                d.audio.currentTime = 0;
+            }
+        });
+        triggerPulse(t.clientX, t.clientY);
+        return;
     }
 
-    // CLASSIC LOGIC (New)
-    else if (interactionType === 'classic-open') {
-        if (!hasMoved) {
-            const dotData = activeDots.find(d => d.element === activeDot);
-            if (dotData && dotData.folder) openProject(dotData.folder);
-        }
-    }
+    // [DOT TAP]
+    const targetEl = targetData.element;
+    e.preventDefault(); // Stop mouse emulation
 
-    // EMPTY SPACE
-    else if (interactionType === 'empty') {
-        if (!hasMoved) {
-            if (currentAudioDot && currentAudioDot.audio) {
-                currentAudioDot.audio.pause();
-                currentAudioDot = null;
-            }
-            isHovering = false;
-            if (activeDot) {
-                activeDot.classList.remove('is-active-3d');
-                activeDot = null;
-            }
-        }
-    }
+    const isAlreadyPreviewing = (activeDot === targetEl);
 
-    isDragging = false;
-    interactionType = null;
-    didTouchHitDot = false;
-    hasMoved = false;
+    if (isAlreadyPreviewing) {
+        // [2nd TAP] -> OPEN PROJECT
+        if (targetData.folder) {
+            openProject(targetData.folder);
+        }
+    } else {
+        // [1st TAP] -> ACTIVATE PREVIEW
+        if (activeDot) {
+            activeDot.classList.remove('is-active-3d');
+            activeDot = null;
+        }
+        
+        // Silence others
+        activeDots.forEach(d => {
+            if(d.audio && d !== targetData) {
+                d.audio.pause();
+                d.audio.currentTime = 0;
+            }
+        });
+
+        // Activate New
+        activeDot = targetEl;
+        isHovering = true; 
+
+        if (targetEl.dataset.glb) {
+            targetEl.classList.add('is-active-3d');
+            loadModel(targetEl.dataset.glb);
+        }
+
+        if (targetData.audio) {
+            targetData.audioFinished = false; 
+            targetData.audio.currentTime = 0;
+            targetData.audio.volume = 1.0;
+            targetData.audio.play().catch(err => console.log(err));
+        }
+
+        triggerPulse(t.clientX, t.clientY);
+    }
 }, { passive: false });
 
 document.addEventListener('visibilitychange', () => {
