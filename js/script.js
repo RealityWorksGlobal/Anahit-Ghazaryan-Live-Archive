@@ -73,6 +73,9 @@ Papa.parse(bioSheetURL, {
             cachedBioHTML = results.data[0]['content'] || results.data[0]['bio_text'];
         }
         bioLoaded = true;
+        if (window.location.hash === '#about') {
+            openAbout();
+        }
         checkAllReady();
     }
 });
@@ -531,35 +534,44 @@ let wasArchiveOpenBefore = false;
 
 
 function closeAllOverlays() {
-    // 1. STOP AUDIO (Cleanup)
-    if (currentProjectAudio) {
-        currentProjectAudio.pause();
-        currentProjectAudio = null; 
+    // 1. URL Handling
+    if (window.location.hash === '#about') {
+        const overlay = document.getElementById('about-overlay');
+        const returnPath = overlay ? overlay.getAttribute('data-return') : '';
+
+        if (returnPath && returnPath !== '') {
+            window.location.hash = returnPath; // Go back to Project or Archive
+        } else {
+            // Remove hash cleanly
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+        }
     }
 
-    // 2. HIDE OVERLAYS
+    // 2. Hide Overlays
     ['archive-overlay', 'project-overlay', 'about-overlay'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
 
-    // 3. RESET CURSOR
-    if (cursorElement) {
-        cursorElement.classList.remove('cursor-loading');
-        cursorElement.classList.remove('hover-active'); // Safety clear
+    // 3. Cleanup Audio
+    if (typeof currentProjectAudio !== 'undefined' && currentProjectAudio) {
+        currentProjectAudio.pause();
+        currentProjectAudio = null;
     }
 
-    // 4. CLEAN UP SCROLL SHADOWS (Important!)
-    // If we don't do this, floating white bars might stay on screen
+    // 4. Reset Cursor
+    if (typeof cursorElement !== 'undefined') {
+        cursorElement.classList.remove('cursor-loading', 'hover-active');
+    }
+
+    // 5. Cleanup Shadows
     if (typeof activeShadows !== 'undefined') {
         activeShadows.forEach(s => s.remove());
         activeShadows = [];
     }
     
-    // 5. RESET 3D SCENE (If you have this function)
-    if (typeof resetScene === 'function') {
-        resetScene();
-    }
+    // 6. Reset 3D (if exists)
+    if (typeof resetScene === 'function') resetScene();
 }
 
 function openArchive() {
@@ -601,22 +613,37 @@ function closeArchive() {
 function openAbout() {
     const archiveEl = document.getElementById('archive-overlay');
     const projectEl = document.getElementById('project-overlay');
-
-    wasArchiveOpenBefore = (archiveEl && archiveEl.style.display === 'flex');
-    const projectOpen = (projectEl && projectEl.style.display === 'flex');
-    const currentProjectHash = window.location.hash;
-
-    closeAllOverlays();
     const overlay = document.getElementById('about-overlay');
     const container = document.getElementById('bio-container');
 
-    if (projectOpen) overlay.setAttribute('data-return', currentProjectHash);
-    else if (wasArchiveOpenBefore) overlay.setAttribute('data-return', '#archive');
-    else overlay.removeAttribute('data-return');
+    // 1. Remember where we came from
+    const wasProjectOpen = (projectEl && projectEl.style.display === 'flex');
+    const wasArchiveOpen = (archiveEl && archiveEl.style.display === 'flex');
+    const currentHash = window.location.hash;
 
-    if (bioLoaded) container.innerHTML = cachedBioHTML;
-    else container.textContent = "Loading...";
+    // 2. Close others & Set URL to #about
+    closeAllOverlays();
+    if (window.location.hash !== '#about') {
+        history.pushState(null, null, '#about');
+    }
 
+    // 3. Store return path
+    if (wasProjectOpen) {
+        overlay.setAttribute('data-return', currentHash);
+    } else if (wasArchiveOpen) {
+        overlay.setAttribute('data-return', '#archive');
+    } else {
+        overlay.removeAttribute('data-return');
+    }
+
+    // 4. Inject Text Only (Fixing Line Breaks)
+    if (bioLoaded && cachedBioHTML) {
+        container.innerHTML = cachedBioHTML.replace(/\n/g, '<br>');
+    } else {
+        container.textContent = "Loading...";
+    }
+
+    // 5. Show Overlay
     overlay.style.display = 'flex';
     setTimeout(updateScrollShadows, 100);
 }
@@ -826,11 +853,6 @@ function openProject(folderName) {
             // --- DEFINE YOUR COLUMNS HERE ---
 
             // Standard Rows (Side-by-side)
-            addMetaRow("Year", project.year, true);
-            addMetaRow("Medium", project.medium, true);
-            addMetaRow("Place", project.place);
-            addMetaRow("Institution", project.institution, true);
-            addMetaRow("Credits", project.credits, true);
             const linkData = project.link || project.website_link;
             
             if (linkData && linkData.trim() !== "") {
@@ -838,6 +860,12 @@ function openProject(folderName) {
                 const linkHTML = `<a href="${url}" target="_blank" class="link-interlaced" title="Visit Website"></a>`;
                 addMetaRow("Link", linkHTML, true);
             }
+            addMetaRow("Year", project.year, true);
+            addMetaRow("Medium", project.medium, true);
+            addMetaRow("Place", project.place);
+            addMetaRow("Institution", project.institution, true);
+            addMetaRow("Credits", project.credits, true);
+            
         }
 
         // 3. Populate Visual Column

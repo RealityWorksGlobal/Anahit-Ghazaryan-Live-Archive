@@ -3,7 +3,7 @@
    ========================================= */
 :root {
     --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    --color-text: #1a1a1a;
+    --color-text: color: rgba(0, 0, 0, 0.85); ;
     --color-bg: #ffffff;
     --color-blue: #002FA7;
     --color-border: #e0e0e0;
@@ -198,91 +198,113 @@ header {
     cursor: pointer;
     background: none;
     padding: 10px 4px;
-    pointer-events: auto;
+    pointer-events: none;
     transition: transform 0.3s ease;
-
-}
-.title:hover {
-    transform: scale(1.015);
 }
 
-/* The Red Header Dot (Archive Trigger) */
-#fixed-archive-dot {
-    width: 12px;
-    height: 12px;
-    background-color: red;
-    border-radius: 50%;
-    cursor: pointer;
-    position: relative;
-    animation: pulseGlow 4s infinite ease-in-out;
-    transition: box-shadow 0.3s ease;
-    top: 1px;
-}
-#fixed-archive-dot:hover {
-    box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1);
-    animation: none;
-}
-#fixed-archive-dot::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    background: transparent;
-    border-radius: 50%;
-}
-
-@keyframes pulseGlow {
-    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
-    50% { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
-}
-
-footer {
-    position: fixed;
-    bottom: 40px;
-    left: 40px;
-    transform: translate(-50%, -50%); 
-    max-width: 80%;
-    width: max-content;
-    z-index: 10001 !important; 
-    text-align: center;
-}
-
-/* The Red Header Dot (Archive Trigger) */
+#fixed-archive-dot, 
 #fixed-contact-dot {
     width: 12px;
     height: 12px;
-    background-color:white;
     border-radius: 50%;
     cursor: pointer;
     position: relative;
-    animation: pulseGlow 4s infinite ease-in-out;
-    transition: box-shadow 0.8s ease;
-    top: 8px;
+    top: 1px;
+    
+    /* Smooth transition for the HOVER glow */
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
+    z-index: 100; /* Ensure they stay on top */
 }
 
-#fixed-contact-dot:hover {
-    box-shadow: 0 0 20px 8px rgba(255, 0, 0, 1);
-    animation: none;
-}
+/* 1. EXPANDED CLICK AREA (::before) - Invisible */
+#fixed-archive-dot::before, 
 #fixed-contact-dot::before {
     content: '';
     position: absolute;
-    top: 50%;
+    top: 50%; 
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px;
+    width: 40px; 
     height: 40px;
     background: transparent;
     border-radius: 50%;
+    z-index: 1; 
 }
 
-@keyframes pulseGlow {
-    0% { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
-    50% { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0.2); }
+/* 2. PULSE ANIMATION LAYER (::after) - The "Ghost" */
+#fixed-archive-dot::after, 
+#fixed-contact-dot::after {
+    content: '';
+    position: absolute;
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
+    border-radius: 50%;
+    pointer-events: none; /* Let clicks pass through to the dot */
+    
+    /* This ensures the pulse fades out smoothly on hover */
+    transition: opacity 0.3s ease; 
+    opacity: 1;
+}
+
+/* =========================================
+   SPECIFIC STYLES & ANIMATIONS
+   ========================================= */
+
+/* --- ARCHIVE DOT (Red) --- */
+#fixed-archive-dot {
+    background-color: red;
+}
+
+/* Hover State: Main Dot Glows */
+#fixed-archive-dot:hover {
+    box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1);
+}
+
+/* Pulse Animation on the Ghost Layer */
+#fixed-archive-dot::after {
+    animation: archivePulse 4s infinite ease-in-out;
+}
+
+/* --- CONTACT DOT (White) --- */
+#fixed-contact-dot {
+    background-color: white;
+}
+
+/* Hover State: Main Dot Glows (Slightly larger as per preference) */
+#fixed-contact-dot:hover {
+    box-shadow: 0 0 20px 8px rgba(255, 0, 0, 1);
+}
+
+/* Pulse Animation on the Ghost Layer */
+#fixed-contact-dot::after {
+    animation: contactPulse 4s infinite ease-in-out;
+}
+
+/* =========================================
+   INTERACTION LOGIC (The Smooth Fix)
+   ========================================= */
+
+/* When hovering the MAIN dot, hide the PULSING layer */
+#fixed-archive-dot:hover::after, 
+#fixed-contact-dot:hover::after {
+    opacity: 0;
+}
+
+/* =========================================
+   KEYFRAMES
+   ========================================= */
+
+@keyframes archivePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
+    50%  { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
+}
+
+@keyframes contactPulse {
+    0%   { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
+    50%  { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0.2); }
     100% { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
 }
 
@@ -459,21 +481,124 @@ footer {
 /* =========================================
    8. CONTENT LAYOUTS
    ========================================= */
-/* Custom width for Bio only */
-/* FORCE BIO WIDTH (Desktop) */
-/* We target the ID #about-overlay so this NEVER affects project cards */
+/* =========================================
+   1. UPDATE THE MAIN CARD (The Container)
+   ========================================= */
 #about-overlay .glass-card {
-    width: 40vw !important;  /* Use 40% of the viewport width */
-    max-width: 700px;        /* Never get wider than 700px */
-    min-width: 400px;        /* Never get too skinny */
+    /* --- Your Existing Settings --- */
+    width: 40vw !important;
+    max-width: 700px;
+    min-width: 400px;
     transform: translateX(-50%);
+    
+    /* --- NEW: Layout Logic for Fixed Footer --- */
+    display: flex;
+    flex-direction: column; /* Stack Bio and Credits vertically */
+    max-height: 85vh;       /* STOP the card from growing off-screen */
+    padding: 0 !important;  /* Remove padding from parent so borders go edge-to-edge */
+    overflow: hidden;       /* Clean corners */
 }
 
+/* =========================================
+   2. THE BIO AREA (The Scrollable Part)
+   ========================================= */
+.card-content.scroll-content {
+    flex: 1;                /* Take up all available space */
+    overflow-y: auto;       /* Scroll ONLY this section */
+    padding: 40px 40px 40px 40px; /* Restore padding here */
+}
+
+.card-content.scroll-content a {
+    color: inherit;
+    font-size: 0.9rem;     /* Readable but elegant (approx 15px) */
+    line-height: 1.7;       /* Generous breathing room */
+    letter-spacing: 0.01em; /* Tiny bit of spacing for clarity */
+    text-decoration: none;
+    font-weight: 500;
+    transition: text-shadow 0.2s;
+    border-bottom: 1px solid rgba(0,0,0,0.2); /* Subtle underline */
+}
+
+.card-content.scroll-content a:hover {
+    text-shadow: rgba(255, 0, 0, 0.5) 0 0 6px;
+}
+
+/* 1. TYPOGRAPHY (The "Gallery" Look) */
 #bio-container {
-     user-select: text !important;
-    -webkit-user-select: text !important; /* Safari support */
+    
+    /* Size & Spacing */
+    font-size: 0.9rem;     /* Readable but elegant (approx 15px) */
+    line-height: 1.7;       /* Generous breathing room */
+    letter-spacing: 0.01em; /* Tiny bit of spacing for clarity */
+    
+    /* Color */
+    color: rgba(0, 0, 0, 0.85); /* Deep Charcoal, not pitch black */
+    
+    /* Layout */
+    margin-bottom: 10px;
+    
+    /* Interaction */
+    user-select: text !important;
+    -webkit-user-select: text !important;
     cursor: text !important;
 }
+
+
+
+/* =========================================
+   3. THE CREDITS (Fixed at Bottom)
+   ========================================= */
+.credits-content {
+    flex-shrink: 0;         /* Prevent it from being squashed */
+    padding: 20px 40px;     /* Match side padding of bio */
+    background: rgba(255, 255, 255, 0.3); /* Slightly distinct background (optional) */
+    border-top: 1px solid rgba(0, 0, 0, 0.1); /* Subtle separator line */
+    
+    /* Typography */
+    font-size: 0.75rem;     /* Small and elegant */
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.6);
+    text-align: center;     /* Center align looks best for footers */
+}
+
+.credits-content p {
+    margin: 4px 0;
+}
+
+/* Link Styling */
+.credits-content a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+    transition: text-shadow 0.2s;
+
+}
+
+.credits-content a:hover {
+    text-shadow: rgba(255, 0, 0, 0.5) 0 0 6px;
+}
+
+/* =========================================
+   MOBILE ADJUSTMENTS
+   ========================================= */
+@media (max-width: 768px) {
+    #about-overlay .glass-card {
+        width: 90vw !important;
+        min-width: unset;
+        max-height: 80vh; /* Slightly smaller on phone */
+    }
+    
+    .card-content.scroll-content {
+        padding: 25px;
+    }
+    
+    .credits-content {
+        padding: 15px 25px;
+    }
+}
+
+
+
 
 /* --- A. ARCHIVE & DATABASE --- */
 .type-archive .archive-layout {
@@ -607,6 +732,7 @@ footer {
     gap: 20px;
     height: 100%;
     padding-top: 10px;
+    padding-right: 20px
     
 }
 .col-meta { flex: 1; overflow-y: auto; padding-right: 10px; }
@@ -827,10 +953,8 @@ transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow
    ========================================= */
 .link-interlaced {
     position: relative;
-    display: inline-block;
-    width: 22px;  /* Total width */
     cursor: pointer;
-    margin: 15px;
+    margin: 20px;
 }
 
 .link-interlaced::before, 

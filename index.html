@@ -25,7 +25,8 @@
 
     <header>
         <div class="header-container">
-            <h1 class="title" onclick="openAbout()">anahit ghazaryan</h1>
+            <div id="fixed-contact-dot" onclick="openAbout()"></div>
+            <h1 class="title">anahit ghazaryan</h1>
             <div id="fixed-archive-dot" onclick="openArchive()"></div>
         </div>
     </header>
@@ -35,6 +36,17 @@
             <button class="close-btn card-close" onclick="closeAbout()"></button>
             <div class="card-content scroll-content">
                 <div id="bio-container"></div>
+                <a href="mailto:anaheetghazaryan@gmail.com" target="_blank">Contact me</a> 
+            </div>
+            <div class="credits-content">
+                <p class="copyright">
+                    &copy; 2026 Anahit Ghazaryan. All Rights Reserved.
+                </p><p class="author">
+                    Website design & development by 
+                    <a href="mailto:studio@juliettemartin.org" target="_blank">Juliette Martin</a> 
+                    for 
+                    <a href="mailto:info@realityworks.global" target="_blank">RealityWorks</a>.
+                </p>
             </div>
             
         </div>
@@ -92,6 +104,5 @@
     <div id="main-scene">
         <div id="dots-container"></div>
     </div>
-    <footer><div id="fixed-contact-dot" onclick="location.href='mailto:anaheetghazaryan@gmail.com';"></div></footer>
 </body>
 </html>
