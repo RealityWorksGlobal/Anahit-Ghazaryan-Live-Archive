@@ -2,10 +2,10 @@
    1. VARIABLES & GLOBAL RESET
    ========================================= */
 :root {
-    --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-main: "courier new", courier, monospace;
     --color-text: color: rgba(0, 0, 0, 0.85); ;
     --color-bg: #ffffff;
-    --color-blue: #002FA7;
+    --color-blue: rgb(0, 47, 167);
     --color-border: #e0e0e0;
 }
 
@@ -511,14 +511,13 @@ header {
 }
 
 .card-content.scroll-content a {
-    color: inherit;
+    color: rgb(0, 47, 167);
     font-size: 0.9rem;     /* Readable but elegant (approx 15px) */
     line-height: 1.7;       /* Generous breathing room */
     letter-spacing: 0.01em; /* Tiny bit of spacing for clarity */
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     transition: text-shadow 0.2s;
-    border-bottom: 1px solid rgba(0,0,0,0.2); /* Subtle underline */
 }
 
 .card-content.scroll-content a:hover {
@@ -545,11 +544,6 @@ header {
     cursor: text !important;
 }
 
-.portrait {
-    display: block;
-    
-    background-color: #002FA7;
-}
 
 
 
