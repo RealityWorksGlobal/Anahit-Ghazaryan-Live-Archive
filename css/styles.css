@@ -489,7 +489,7 @@ header {
 #about-overlay .glass-card {
     /* --- Your Existing Settings --- */
     width: 40vw !important;
-    max-width: 700px;
+    max-width: 750px;
     min-width: 400px;
     transform: translateX(-50%);
     
@@ -543,6 +543,12 @@ header {
     user-select: text !important;
     -webkit-user-select: text !important;
     cursor: text !important;
+}
+
+.portrait {
+    display: block;
+    
+    background-color: #002FA7;
 }
 
 

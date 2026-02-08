@@ -1295,24 +1295,43 @@ function updatePositionWithRaycaster(element) {
 }
 
 function loadModel(filename) {
+    // 1. INSTANT CLEANUP: Remove the old model immediately
+    if (currentWrapper) {
+        scene.remove(currentWrapper);
+        currentWrapper = null;
+        currentModel = null;
+    }
+
+    // 2. CHECK CACHE
     if (modelCache[filename]) {
         spawn(modelCache[filename].clone());
         return;
     }
+
+    // 3. LOAD NEW
     loader.load(ASSET_PATH + filename, (gltf) => {
+        // --- SAFETY CHECK: Are we still hovering the right dot? ---
+        // If the user moved to another dot or left entirely, activeDot will be different.
+        if (!activeDot || activeDot.dataset.glb !== filename) {
+            return; // Stop. Do not spawn this model.
+        }
+
         const m = gltf.scene;
         const box = new THREE.Box3().setFromObject(m);
         const center = box.getCenter(new THREE.Vector3());
         m.position.sub(center);
+        
         m.traverse(c => {
             if (c.isMesh) {
                 c.geometry = c.geometry.clone();
                 applyFisheyeEffect(c.geometry);
             }
         });
+
         modelCache[filename] = m;
         const group = new THREE.Group();
         group.add(m.clone());
+        
         spawn(group);
     });
 }
