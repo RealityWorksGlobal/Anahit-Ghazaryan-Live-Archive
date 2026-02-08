@@ -649,20 +649,23 @@ function openAbout() {
     const archiveEl = document.getElementById('archive-overlay');
     const projectEl = document.getElementById('project-overlay');
     const overlay = document.getElementById('about-overlay');
-    const container = document.getElementById('bio-container');
+    // TARGET THE NEW SLOT, NOT THE PARENT
+    const textSlot = document.getElementById('bio-text-slot'); 
+    if (bioLoaded && cachedBioHTML) {
+    textSlot.innerHTML = cachedBioHTML.replace(/\n/g, '<br>');
+}
 
-    // 1. Remember where we came from
-    const wasProjectOpen = (projectEl && projectEl.style.display === 'flex');
-    const wasArchiveOpen = (archiveEl && archiveEl.style.display === 'flex');
-    const currentHash = window.location.hash;
-
-    // 2. Close others & Set URL to #about
     closeAllOverlays();
+    
     if (window.location.hash !== '#about') {
         history.pushState(null, null, '#about');
     }
 
-    // 3. Store return path
+    // [Logic for return paths remains the same...]
+    const wasProjectOpen = (projectEl && projectEl.style.display === 'flex');
+    const wasArchiveOpen = (archiveEl && archiveEl.style.display === 'flex');
+    const currentHash = window.location.hash;
+
     if (wasProjectOpen) {
         overlay.setAttribute('data-return', currentHash);
     } else if (wasArchiveOpen) {
@@ -671,14 +674,14 @@ function openAbout() {
         overlay.removeAttribute('data-return');
     }
 
-    // 4. Inject Text Only (Fixing Line Breaks)
+    // --- UPDATED INJECTION LOGIC ---
     if (bioLoaded && cachedBioHTML) {
-        container.innerHTML = cachedBioHTML.replace(/\n/g, '<br>');
+        // Inject only into the text slot, leaving the <img> untouched
+        textSlot.innerHTML = cachedBioHTML.replace(/\n/g, '<br>');
     } else {
-        container.textContent = "Loading...";
+        textSlot.textContent = "Loading...";
     }
 
-    // 5. Show Overlay
     overlay.style.display = 'flex';
     setTimeout(updateScrollShadows, 100);
 }

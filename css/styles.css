@@ -202,8 +202,10 @@ header {
     transition: transform 0.3s ease;
 }
 
+/* --- ABOUT DOT (White) --- */
+
 #fixed-archive-dot, 
-#fixed-contact-dot {
+#fixed-about-dot, #fixed-contact-dot {
     width: 12px;
     height: 12px;
     border-radius: 50%;
@@ -218,7 +220,7 @@ header {
 
 /* 1. EXPANDED CLICK AREA (::before) - Invisible */
 #fixed-archive-dot::before, 
-#fixed-contact-dot::before {
+#fixed-about-dot::before {
     content: '';
     position: absolute;
     top: 50%; 
@@ -233,7 +235,7 @@ header {
 
 /* 2. PULSE ANIMATION LAYER (::after) - The "Ghost" */
 #fixed-archive-dot::after, 
-#fixed-contact-dot::after {
+#fixed-about-dot::after {
     content: '';
     position: absolute;
     top: 0; 
@@ -267,19 +269,27 @@ header {
     animation: archivePulse 4s infinite ease-in-out;
 }
 
-/* --- CONTACT DOT (White) --- */
-#fixed-contact-dot {
+/* --- ABOUT DOT (White) --- */
+#fixed-about-dot {
     background-color: white;
 }
 
 /* Hover State: Main Dot Glows (Slightly larger as per preference) */
-#fixed-contact-dot:hover {
+#fixed-about-dot:hover {
     box-shadow: 0 0 20px 8px rgba(255, 0, 0, 1);
 }
 
 /* Pulse Animation on the Ghost Layer */
-#fixed-contact-dot::after {
-    animation: contactPulse 4s infinite ease-in-out;
+#fixed-about-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    animation: archivePulse 4s infinite ease-in-out;
 }
 
 /* =========================================
@@ -288,7 +298,7 @@ header {
 
 /* When hovering the MAIN dot, hide the PULSING layer */
 #fixed-archive-dot:hover::after, 
-#fixed-contact-dot:hover::after {
+#fixed-about-dot:hover::after {
     opacity: 0;
 }
 
@@ -488,7 +498,7 @@ header {
    ========================================= */
 #about-overlay .glass-card {
     /* --- Your Existing Settings --- */
-    width: 40vw !important;
+    width: 50vw !important;
     max-width: 750px;
     min-width: 400px;
     transform: translateX(-50%);
@@ -525,10 +535,45 @@ header {
 }
 
 /* 1. TYPOGRAPHY (The "Gallery" Look) */
-#bio-container {
+
+.bio-layout-wrapper {
+    display: flex;
+    align-items: flex-start; /* Aligns items to the top */
+    gap: 30px;              /* Space between GIF and text */
+    padding: 20px;
+    flex-direction: column;
     
-    /* Size & Spacing */
-    font-size: 0.9rem;     /* Readable but elegant (approx 15px) */
+}
+.portrait-container {
+    position: relative;
+    width: 100%; /* Match your desired portrait width */
+    height: auto;
+    flex-shrink: 0;
+}
+
+.bio-portrait {
+    width: 100%;           /* Adjust size as needed */
+    height: auto;
+    border-radius: 15px;     /* Optional styling */
+    flex-shrink: 0;         /* Prevents the image from getting squashed */
+}
+
+/* Place the GIF exactly on top of the PNG */
+.bio-portrait.animated {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* When the container is hovered, show the GIF */
+.portrait-container:hover .bio-portrait.animated {
+    opacity: 1;
+}
+
+#bio-text-slot {
+    font-size: 0.8rem;     /* Readable but elegant (approx 15px) */
     line-height: 1.7;       /* Generous breathing room */
     letter-spacing: 0.01em; /* Tiny bit of spacing for clarity */
     
@@ -546,21 +591,23 @@ header {
 
 
 
-
 /* =========================================
    3. THE CREDITS (Fixed at Bottom)
    ========================================= */
 .credits-content {
-    flex-shrink: 0;         /* Prevent it from being squashed */
-    padding: 20px 40px;     /* Match side padding of bio */
-    background: rgba(255, 255, 255, 0.3); /* Slightly distinct background (optional) */
-    border-top: 1px solid rgba(0, 0, 0, 0.1); /* Subtle separator line */
+    display: flex;          /* Enables side-by-side layout */
+    justify-content: space-between; /* Pushes text LEFT and dot RIGHT */
+    align-items: center;    /* Keeps them vertically centered with each other */
+    flex-shrink: 0;
+    padding: 20px 40px;
+    background: rgba(255, 255, 255, 0.3);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
     
     /* Typography */
-    font-size: 0.75rem;     /* Small and elegant */
+    font-size: 0.75rem;
     line-height: 1.5;
     color: rgba(0, 0, 0, 0.6);
-    text-align: center;     /* Center align looks best for footers */
+    text-align: left;
 }
 
 .credits-content p {
@@ -573,13 +620,94 @@ header {
     text-decoration: none;
     font-weight: 600;
     transition: text-shadow 0.2s;
-
 }
 
 .credits-content a:hover {
     text-shadow: rgba(255, 0, 0, 0.5) 0 0 6px;
 }
 
+/* --- CONTACT GROUP (In Credits) --- */
+#fixed-contact-dot {
+    display: flex !important;   /* Force horizontal */
+    flex-direction: row;
+    align-items: center;        /* Perfect vertical center */
+    justify-content: flex-end;  /* Stick to the right */
+    gap: 12px;                  /* Gap between text and dot */
+    cursor: pointer;
+    position: relative;
+    background: transparent;    /* Ensure no background box appears */
+}
+
+/* The Label */
+.contact-text {
+    font-size: 0.75rem;
+    color: rgba(255, 0, 0, 0.6);
+    white-space: nowrap;        /* Keeps "Contact me" on one line */
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* The Red Dot itself */
+.red-core {
+    width: 12px;
+    height: 12px;
+    background-color: red;
+    border-radius: 50%;
+    position: relative;         /* Anchor for its own pulse */
+    flex-shrink: 0;             /* Don't let it squash */
+    transition: all 0.3s ease-in-out;
+}
+
+#fixed-contact-dot:hover .red-core {
+    transform: scale(1.2);
+    box-shadow: 0 0 10px 3px rgba(255, 0, 0, 1);
+}
+
+/* Attach pulse ONLY to the red dot, not the text */
+.red-core::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1px solid red;
+    opacity: 0;
+    animation: simplePulse 3s infinite ease-out;
+}
+
+@keyframes simplePulse {
+    0% { width: 100%; height: 100%; opacity: 0.8; }
+    100% { width: 400%; height: 400%; opacity: 0; }
+}
+
+@media (max-width: 1400px) {
+    .credits-content {
+        flex-direction: column-reverse; /* Stacks Contact (top) and Credits (bottom) */
+        align-items: flex-start;       /* Align everything to the left */
+        gap: 15px;                     /* Space between the two blocks */
+        padding: 25px 30px !important;
+    }
+
+    #fixed-contact-dot {
+        justify-content: flex-start;   /* Keeps dot/text left-aligned */
+        width: 100%;
+        margin-bottom: 5px;            /* Extra breathing room */
+    }
+
+    .credits-text-stack {
+        text-align: left;
+    }
+    .red-core {
+        order: -1; /* This forces the dot to appear BEFORE the text */
+    }
+    
+    .contact-text {
+        order: 1; /* This forces the text to appear AFTER the dot */
+    }
+}
 /* =========================================
    MOBILE ADJUSTMENTS
    ========================================= */
@@ -701,6 +829,15 @@ header {
     gap: 8px;
     flex-wrap: wrap;
 }
+input, 
+textarea, 
+select, 
+button,
+#tag-bar {
+    font-family: var(--font-main) !important;
+    font-size: 12px;
+}
+
 .tag-btn { 
     background: transparent;
     border: 1px solid #e0e0e0; 
@@ -831,17 +968,14 @@ header {
 
 /* =========================================
    SCROLL FADE OVERLAY (The "White Shadow")
-   ========================================= */
 .scroll-shadow-overlay {
-    position: fixed;       /* Locks it to the screen, ignoring scrollbars */
-    z-index: 9999;         /* Forces it on top of text */
-    pointer-events: none;  /* Allows you to click/scroll "through" it */
-    
-    /* The Look */
+    position: fixed;      
+    z-index: 9999;         
+    pointer-events: none; 
+
     height: 60px;          
     background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgb(255, 0, 0) 90%);
-    
-    /* Animation */
+
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -854,20 +988,17 @@ header {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 80px; /* Taller fade for mobile touch areas */
-    
-    /* Gradient: Transparent to Background Color */
-    /* Note: If your card is slightly transparent, this fades to white. 
-       If you want it to fade to the glass color, use rgba(255,255,255,0.2) at the end, 
-       but standard white usually looks cleanest for readability. */
+    height: 80px; 
+  
     background: linear-gradient(to bottom, rgba(255,255,255,0), rgb(255, 255, 255) 90%);
     
     z-index: 9999;
     pointer-events: none;
     
-    /* SQUARE CORNERS as requested */
+
     border-radius: 0; 
-}
+}*/
+
 /* =========================================
    9. VISUAL INTERACTIONS & MEDIA
    ========================================= */
@@ -1078,7 +1209,8 @@ transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow
     /* 1. THE FRAME (Card) - Fixed Window, Anchors Shadow */
     .glass-card, .popup-panel {
         width: 85vw;            /* Your Width Preference */
-        height: 75vh;           /* Your Height Preference */
+        max-width: 400px !important;
+        height: 85vh;           /* Your Height Preference */
         position: relative;     /* Anchors the shadow */
         overflow: hidden;       /* STOPS shadow from scrolling */
         display: flex;
