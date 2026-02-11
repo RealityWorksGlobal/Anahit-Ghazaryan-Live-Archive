@@ -683,30 +683,32 @@ header {
 }
 
 @media (max-width: 1650px) {
-    .credits-content {
+    .type-bio .credits-content {
         flex-direction: column-reverse; /* Stacks Contact (top) and Credits (bottom) */
         align-items: flex-start;       /* Align everything to the left */
         gap: 15px;                     /* Space between the two blocks */
         padding: 25px 30px !important;
     }
 
-    #fixed-contact-dot {
+    .type-bio #fixed-contact-dot {
         justify-content: flex-start;   /* Keeps dot/text left-aligned */
         width: 100%;
         margin-bottom: 5px;            /* Extra breathing room */
     }
 
-    .credits-text-stack {
+    .type-bio .credits-text-stack {
         text-align: left;
     }
-    .red-core {
+    .type-bio .red-core {
         order: -1;
         position: relative; /* THE FIX: Anchors the pulse to the 12px dot */
     }
     
-    .contact-text {
+    .type-bio .contact-text {
         order: 1; /* This forces the text to appear AFTER the dot */
     }
+    
+    
 }
 /* =========================================
    MOBILE ADJUSTMENTS
@@ -728,19 +730,56 @@ header {
 }
 
 
-
-
-/* --- A. ARCHIVE & DATABASE --- */
+/* =========================================
+   ARCHIVE AND DATABASE
+   ========================================= */
 .type-archive .archive-layout {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    box-sizing: border-box;
-    /* ADD THIS: Forces children to the top */
-    justify-content: flex-start; 
-    align-items: stretch;
+    flex: 1;           /* Takes all available space */
+    min-height: 0;     /* CRITICAL: Allows this section to shrink so footer stays visible */
+    overflow: hidden;
+
 }
+.type-archive .credits-content {
+    padding: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    /* LAYOUT: Prevent it from squashing */
+    flex-shrink: 0;      
+    display: flex;
+    align-items: flex-end;
+    padding-top:20px ;
+    margin-bottom: -20px;
+}
+
+@media (max-width: 768px) {
+    .type-archive .credits-content {
+        flex-direction: column-reverse; /* Stacks Contact (top) and Credits (bottom) */
+        align-items: flex-start;       /* Align everything to the left */
+        gap: 15px;                     /* Space between the two blocks */
+        margin-bottom: 0;
+    }
+
+    .type-archive #fixed-contact-dot {
+        justify-content: flex-start;   /* Keeps dot/text left-aligned */
+        width: 100%;
+    }
+
+    .type-archive .credits-text-stack {
+        text-align: left;
+    }
+    .type-archive .red-core {
+        order: -1;
+        position: relative; /* THE FIX: Anchors the pulse to the 12px dot */
+    }
     
+    .type-archive .contact-text {
+        order: 1; /* This forces the text to appear AFTER the dot */
+    }
+    
+    
+}
+
 #tag-bar { 
     display: flex; 
     gap: 8px; 
@@ -782,9 +821,9 @@ header {
 }
 
 /* Table Columns */
-#artist-database th:nth-child(1) { width: 9%; }  
+#artist-database th:nth-child(1) { width: 7%; }  
 #artist-database th:nth-child(2) { width: 27%; } 
-#artist-database th:nth-child(3) { width: 8%; } 
+#artist-database th:nth-child(3) { width: 10%; } 
 #artist-database th:nth-child(4) { width: 14%; } 
 #artist-database th:nth-child(5) { width: 20%; } 
 #artist-database th:nth-child(6) { width: 19%; } 
@@ -854,7 +893,11 @@ button,
     color: black;
 }
 
-/* --- C. PROJECT (3-COLUMN CARD) --- */
+
+/* =========================================
+   PROJECT PAGE
+   ========================================= */
+
 .project-grid {
     display: flex; 
     width: 100%;
