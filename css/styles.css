@@ -498,7 +498,7 @@ header {
    ========================================= */
 #about-overlay .glass-card {
     /* --- Your Existing Settings --- */
-    width: 50vw !important;
+    width: 40vw !important;
     max-width: 750px;
     min-width: 400px;
     transform: translateX(-50%);
@@ -597,7 +597,7 @@ header {
 .credits-content {
     display: flex;          /* Enables side-by-side layout */
     justify-content: space-between; /* Pushes text LEFT and dot RIGHT */
-    align-items: center;    /* Keeps them vertically centered with each other */
+    align-items: flex-end;    /* Keeps them vertically centered with each other */
     flex-shrink: 0;
     padding: 20px 40px;
     background: rgba(255, 255, 255, 0.3);
@@ -608,6 +608,7 @@ header {
     line-height: 1.5;
     color: rgba(0, 0, 0, 0.6);
     text-align: left;
+
 }
 
 .credits-content p {
@@ -630,12 +631,11 @@ header {
 #fixed-contact-dot {
     display: flex !important;   /* Force horizontal */
     flex-direction: row;
-    align-items: center;        /* Perfect vertical center */
     justify-content: flex-end;  /* Stick to the right */
     gap: 12px;                  /* Gap between text and dot */
     cursor: pointer;
-    position: relative;
-    background: transparent;    /* Ensure no background box appears */
+    background: transparent; 
+    margin-bottom: 10px;
 }
 
 /* The Label */
@@ -653,7 +653,6 @@ header {
     height: 12px;
     background-color: red;
     border-radius: 50%;
-    position: relative;         /* Anchor for its own pulse */
     flex-shrink: 0;             /* Don't let it squash */
     transition: all 0.3s ease-in-out;
 }
@@ -683,7 +682,7 @@ header {
     100% { width: 400%; height: 400%; opacity: 0; }
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1650px) {
     .credits-content {
         flex-direction: column-reverse; /* Stacks Contact (top) and Credits (bottom) */
         align-items: flex-start;       /* Align everything to the left */
@@ -701,7 +700,8 @@ header {
         text-align: left;
     }
     .red-core {
-        order: -1; /* This forces the dot to appear BEFORE the text */
+        order: -1;
+        position: relative; /* THE FIX: Anchors the pulse to the 12px dot */
     }
     
     .contact-text {
