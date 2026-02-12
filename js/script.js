@@ -1100,8 +1100,8 @@ function updateCursorVisuals() {
         
         // Only apply rotation if dragging/hovering
         if (isDragging) {
-             rotVelocity.x += deltaX * 0.003;
-             rotVelocity.y += deltaY * 0.003;
+             rotVelocity.x += deltaX * 0.95;
+             rotVelocity.y += deltaY * 0.95;
         }
         
         previousMouse = { x: currentMouseX, y: currentMouseY };
@@ -1518,7 +1518,7 @@ window.addEventListener('touchmove', (e) => {
 
         // SENSITIVITY: 0.003 is too fast for mobile. 
         // 0.0008 is usually the sweet spot for touch screens.
-        const touchSensitivity = 0.0008; 
+        const touchSensitivity = 0.002; 
 
         rotVelocity.x += deltaX * touchSensitivity;
         rotVelocity.y += deltaY * touchSensitivity;
