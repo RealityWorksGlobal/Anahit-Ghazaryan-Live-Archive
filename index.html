@@ -14,6 +14,20 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
     
     <script src="js/script.js" defer></script>
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://anaheet.am/">
+    <meta property="og:title" content="Anahit Ghazaryan">
+    <meta property="og:description" content="Visual artist, writer, and filmmaker. A living archive of works and explorations.">
+    
+    <meta property="og:image" content="https://anaheet.am/assets/page.jpg">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://anaheet.am/">
+    <meta name="twitter:title" content="Anahit Ghazaryan">
+    <meta name="twitter:description" content="Visual artist, writer, and filmmaker. A living archive of works and explorations.">
+    <meta name="twitter:image" content="https://anaheet.am/assets/page.jpg">
+
 </head>
 <body class="main">
 
@@ -35,7 +49,7 @@
     <div id="about-overlay" class="overlay layer-about">
         <div class="glass-card type-bio">
             <button class="close-btn card-close" onclick="closeAbout()"></button>
-            <div class="card-content scroll-content">
+            <div class="card-content scroll-content has-scroll-shadows">
                 <div class="bio-layout-wrapper">
                     <div class="portrait-container">
                         <img src="./assets/portrait.jpg" alt="Anahit portrait" class="bio-portrait static">
@@ -63,7 +77,7 @@
         </div>
     </div>
 
-    <div id="project-overlay" class="overlay layer-top">
+    <div id="project-overlay" class="overlay layer-top ">
         <div class="glass-card type-project">
             <button class="close-btn card-close" onclick="closeProject()"></button>
 
@@ -75,7 +89,7 @@
                         <div id="meta-container" class="meta-grid">
                             </div>
                     </div>
-                    <div class="col-desc scroll-content">
+                    <div class="col-desc scroll-content has-scroll-shadows">
                         <div id="popup-description"></div>
                     </div>
                 </div>
@@ -83,6 +97,12 @@
                 <div class="col-visual" id="popup-visual-container"></div>
 
             </div>
+            <div class="credits-content">
+                <div id="fixed-contact-dot" onclick="window.location.href='mailto:anaheetghazaryan@gmail.com'">
+                    <span class="contact-text">Contact me</span>
+                    <div class="red-core"></div> 
+                </div>
+            </div>  
             
         </div>
     </div>
@@ -93,7 +113,7 @@
             
             <div class="archive-layout">
                 <div id="tag-bar"></div> 
-                <div class="database-wrapper scroll-content">
+                <div class="database-wrapper scroll-content has-scroll-shadows">
                     <table id="artist-database">
                         <thead>
                             <tr>
@@ -110,15 +130,6 @@
                 </div>
             </div>
             <div class="credits-content">
-                <div class="credits-text-stack">
-                    <p class="copyright">&copy; 2026 Anahit Ghazaryan. All Rights Reserved.</p> 
-                    <p class="author">
-                        Website design & development by 
-                        <a href="mailto:studio@juliettemartin.org" target="_blank">Juliette Martin</a> 
-                        for 
-                        <a href="mailto:info@realityworks.global" target="_blank">RealityWorks</a>.
-                    </p>
-                </div> 
                 <div id="fixed-contact-dot" onclick="window.location.href='mailto:anaheetghazaryan@gmail.com'">
                     <span class="contact-text">Contact me</span>
                     <div class="red-core"></div> 

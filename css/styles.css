@@ -1,9 +1,24 @@
+/* =============================================================================
+   ANAHIT GHAZARYAN - MASTER STYLESHEET
+   =============================================================================
+   1.  VARIABLES & RESET
+   2.  SYSTEM (Canvas, Cursor, Loader)
+   3.  HEADER & MAIN NAVIGATION
+   4.  SCENE ELEMENTS (Background Dots)
+   5.  OVERLAY & GLASS CARD SYSTEM (Global)
+   6.  SECTION: ABOUT (Bio)
+   7.  SECTION: ARCHIVE (Database)
+   8.  SECTION: PROJECT (Grid Layout)
+   9.  SHARED COMPONENTS (Credits Footer, Visuals)
+   10. RESPONSIVE / MOBILE
+   ============================================================================= */
+
 /* =========================================
    1. VARIABLES & GLOBAL RESET
    ========================================= */
 :root {
     --font-main: "courier new", courier, monospace;
-    --color-text: color: rgba(0, 0, 0, 0.85); ;
+    --color-text: rgba(0, 0, 0, 0.85);
     --color-bg: #ffffff;
     --color-blue: rgb(0, 47, 167);
     --color-border: #e0e0e0;
@@ -28,13 +43,17 @@ body {
     transition: background-color 1s;
 }
 
-/* Custom Scrollbar Styling (Global) */
+/* Hide Scrollbars Globally */
 ::-webkit-scrollbar {
    display: none;
 }
+
+
 /* =========================================
-   2. CANVAS & BACKGROUND LAYERS
+   2. SYSTEM (CANVAS, CURSOR, LOADER)
    ========================================= */
+
+/* --- Three.js Background Canvas --- */
 #three-canvas {
     position: fixed !important;
     top: 0;
@@ -48,9 +67,7 @@ body {
     pointer-events: none !important;
 }
 
-/* =========================================
-   3. CUSTOM CURSOR SYSTEM
-   ========================================= */
+/* --- Custom Cursor --- */
 #custom-cursor {
     position: fixed;
     top: 0;
@@ -70,7 +87,7 @@ body {
     box-shadow: 0 0 3px 1px rgba(255, 0, 0);
 }
 
-/* Loading Pulse Animation applied to cursor */
+/* Cursor: Loading State */
 .cursor-loading {
     width: 8px !important;
     height: 8px !important;
@@ -78,13 +95,7 @@ body {
     animation: loadPulse 0.8s infinite ease-in-out;
 }
 
-@keyframes loadPulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
-}
-
-/* Carousel Arrow Transformations */
+/* Cursor: Carousel Arrows */
 #custom-cursor.cursor-arrow-next,
 #custom-cursor.cursor-arrow-prev {
     background: transparent !important; 
@@ -98,11 +109,14 @@ body {
     transition: transform 0.2s ease;
 }
 
-#custom-cursor.cursor-arrow-next {
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-#custom-cursor.cursor-arrow-prev {
-    transform: translate(-50%, -50%) rotate(-135deg);
+#custom-cursor.cursor-arrow-next { transform: translate(-50%, -50%) rotate(45deg); }
+#custom-cursor.cursor-arrow-prev { transform: translate(-50%, -50%) rotate(-135deg); }
+
+/* Cursor Animations */
+@keyframes loadPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
 }
 
 /* Touch Interaction Pulse */
@@ -123,18 +137,7 @@ body {
     100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
 }
 
-/* Hide custom cursor on touch devices */
-@media (hover: none) and (pointer: coarse) {
-    #custom-cursor, .cursor-dot, .cursor-circle {
-        display: none !important;
-        opacity: 0 !important;
-    }
-    body { cursor: auto; }
-}
-
-/* =========================================
-   4. LOADING SCREEN
-   ========================================= */
+/* --- Loading Screen --- */
 #loading-screen {
     position: fixed !important;
     top: 0;
@@ -167,8 +170,9 @@ body {
     animation: cursorPulse 1.5s infinite ease-in-out;
 }
 
+
 /* =========================================
-   5. HEADER & NAVIGATION
+   3. HEADER & NAVIGATION
    ========================================= */
 header {
     position: fixed;
@@ -202,23 +206,20 @@ header {
     transition: transform 0.3s ease;
 }
 
-/* --- ABOUT DOT (White) --- */
-
+/* --- Nav Dots (Shared Styles) --- */
 #fixed-archive-dot, 
-#fixed-about-dot, #fixed-contact-dot {
+#fixed-about-dot {
     width: 12px;
     height: 12px;
     border-radius: 50%;
     cursor: pointer;
     position: relative;
     top: 1px;
-    
-    /* Smooth transition for the HOVER glow */
     transition: box-shadow 0.3s ease, background-color 0.3s ease;
-    z-index: 100; /* Ensure they stay on top */
+    z-index: 100;
 }
 
-/* 1. EXPANDED CLICK AREA (::before) - Invisible */
+/* Expanded Click Area */
 #fixed-archive-dot::before, 
 #fixed-about-dot::before {
     content: '';
@@ -233,7 +234,7 @@ header {
     z-index: 1; 
 }
 
-/* 2. PULSE ANIMATION LAYER (::after) - The "Ghost" */
+/* Pulse Animation Layer (The Ghost) */
 #fixed-archive-dot::after, 
 #fixed-about-dot::after {
     content: '';
@@ -243,68 +244,25 @@ header {
     width: 100%; 
     height: 100%;
     border-radius: 50%;
-    pointer-events: none; /* Let clicks pass through to the dot */
-    
-    /* This ensures the pulse fades out smoothly on hover */
+    pointer-events: none;
     transition: opacity 0.3s ease; 
     opacity: 1;
-}
-
-/* =========================================
-   SPECIFIC STYLES & ANIMATIONS
-   ========================================= */
-
-/* --- ARCHIVE DOT (Red) --- */
-#fixed-archive-dot {
-    background-color: red;
-}
-
-/* Hover State: Main Dot Glows */
-#fixed-archive-dot:hover {
-    box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1);
-}
-
-/* Pulse Animation on the Ghost Layer */
-#fixed-archive-dot::after {
     animation: archivePulse 4s infinite ease-in-out;
 }
 
-/* --- ABOUT DOT (White) --- */
-#fixed-about-dot {
-    background-color: white;
-}
-
-/* Hover State: Main Dot Glows (Slightly larger as per preference) */
-#fixed-about-dot:hover {
-    box-shadow: 0 0 20px 8px rgba(255, 0, 0, 1);
-}
-
-/* Pulse Animation on the Ghost Layer */
-#fixed-about-dot::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    animation: archivePulse 4s infinite ease-in-out;
-}
-
-/* =========================================
-   INTERACTION LOGIC (The Smooth Fix)
-   ========================================= */
-
-/* When hovering the MAIN dot, hide the PULSING layer */
+/* Hide pulse on hover */
 #fixed-archive-dot:hover::after, 
 #fixed-about-dot:hover::after {
     opacity: 0;
 }
 
-/* =========================================
-   KEYFRAMES
-   ========================================= */
+/* Specific: Archive Dot (Red) */
+#fixed-archive-dot { background-color: red; }
+#fixed-archive-dot:hover { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1); }
+
+/* Specific: About Dot (White) */
+#fixed-about-dot { background-color: white; }
+#fixed-about-dot:hover { box-shadow: 0 0 20px 8px rgba(255, 0, 0, 1); }
 
 @keyframes archivePulse {
     0%   { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
@@ -312,15 +270,9 @@ header {
     100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
 }
 
-@keyframes contactPulse {
-    0%   { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
-    50%  { box-shadow: 0 0 20px 5px rgba(255, 0, 0, 1), inset 0 0 12px 4px rgba(255, 255, 255, 0.2); }
-    100% { box-shadow: 0 0 2px 0 rgba(255, 0, 0, 0.5), inset 0 0 0 0 rgba(255, 255, 255, 1); }
-}
-
 
 /* =========================================
-   6. 3D SCENE DOTS
+   4. SCENE ELEMENTS (BACKGROUND DOTS)
    ========================================= */
 #main-scene {
     position: fixed;
@@ -366,7 +318,7 @@ header {
     border-radius: 50%;
 }   
 
-/* 3D Model Glow Effect */
+/* 3D Model Glow */
 .dot.has-3d::after {
     content: '';
     position: absolute;
@@ -416,8 +368,9 @@ header {
     100% { transform: scale(0.8); opacity: 0; border-width: 0px; }
 }
 
+
 /* =========================================
-   7. THE OVERLAY & GLASS CARD (UNIFIED)
+   5. OVERLAY & GLASS CARD SYSTEM (GLOBAL)
    ========================================= */
 .overlay {
     display: none; 
@@ -434,12 +387,11 @@ header {
     z-index: 100; 
 }
 
-/* The Card Logic */
+/* The Base Card */
 .glass-card {
-    /* Floating Card Dimensions */
     width: 85vw; 
     height: 85vh; 
-    margin-top: 50px; /* Offset from header */
+    margin-top: 50px; 
     padding: 50px;  
     background: rgba(255, 255, 255, 0.2); 
     border-radius: 30px; 
@@ -459,7 +411,7 @@ header {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Close Button (Universal) */
+/* Close Button */
 .close-btn { 
     position: absolute;
     top: 30px;
@@ -478,313 +430,112 @@ header {
     transform: scale(1.1);
     box-shadow: 0 0 10px 4px rgba(0, 47, 167, 0.4); 
 }
-
 .close-btn::before {
     content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px;  /* The invisible hit area width */
-    height: 40px; /* The invisible hit area height */
+    width: 40px; height: 40px;
     background: transparent;
 }
 
+
 /* =========================================
-   8. CONTENT LAYOUTS
-   ========================================= */
-/* =========================================
-   1. UPDATE THE MAIN CARD (The Container)
+   6. SECTION: ABOUT (BIO)
    ========================================= */
 #about-overlay .glass-card {
-    /* --- Your Existing Settings --- */
     width: 40vw !important;
     max-width: 750px;
     min-width: 400px;
     transform: translateX(-50%);
-    
-    /* --- NEW: Layout Logic for Fixed Footer --- */
     display: flex;
-    flex-direction: column; /* Stack Bio and Credits vertically */
-    max-height: 85vh;       /* STOP the card from growing off-screen */
-    padding: 0 !important;  /* Remove padding from parent so borders go edge-to-edge */
-    overflow: hidden;       /* Clean corners */
+    flex-direction: column;
+    max-height: 85vh;      
+    padding: 0 !important;  /* Edge-to-edge layout */
+    overflow: hidden;      
 }
 
-/* =========================================
-   2. THE BIO AREA (The Scrollable Part)
-   ========================================= */
+/* Bio Scroll Area */
 .card-content.scroll-content {
-    flex: 1;                /* Take up all available space */
-    overflow-y: auto;       /* Scroll ONLY this section */
-    padding: 40px 40px 40px 40px; /* Restore padding here */
+    flex: 1;                
+    overflow-y: auto;       
+    padding: 40px; 
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
+/* Bio Typography */
 .card-content.scroll-content a {
-    color: rgb(0, 47, 167);
-    font-size: 0.9rem;     /* Readable but elegant (approx 15px) */
-    line-height: 1.7;       /* Generous breathing room */
-    letter-spacing: 0.01em; /* Tiny bit of spacing for clarity */
+    color: var(--color-blue);
+    font-size: 0.9rem;     
+    line-height: 1.7;       
+    letter-spacing: 0.01em; 
     text-decoration: none;
     font-weight: 600;
     transition: text-shadow 0.2s;
 }
-
 .card-content.scroll-content a:hover {
     text-shadow: rgba(255, 0, 0, 0.5) 0 0 6px;
 }
 
-/* 1. TYPOGRAPHY (The "Gallery" Look) */
-
-.bio-layout-wrapper {
-    display: flex;
-    align-items: flex-start; /* Aligns items to the top */
-    gap: 30px;              /* Space between GIF and text */
-    padding: 20px;
-    flex-direction: column;
-    
-}
-.portrait-container {
-    position: relative;
-    width: 100%; /* Match your desired portrait width */
-    height: auto;
-    flex-shrink: 0;
-}
-
-.bio-portrait {
-    width: 100%;           /* Adjust size as needed */
-    height: auto;
-    border-radius: 15px;     /* Optional styling */
-    flex-shrink: 0;         /* Prevents the image from getting squashed */
-}
-
-/* Place the GIF exactly on top of the PNG */
-.bio-portrait.animated {
-    position: absolute;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-}
-
-/* When the container is hovered, show the GIF */
-.portrait-container:hover .bio-portrait.animated {
-    opacity: 1;
-}
-
 #bio-text-slot {
-    font-size: 0.8rem;     /* Readable but elegant (approx 15px) */
-    line-height: 1.7;       /* Generous breathing room */
-    letter-spacing: 0.01em; /* Tiny bit of spacing for clarity */
-    
-    /* Color */
-    color: rgba(0, 0, 0, 0.85); /* Deep Charcoal, not pitch black */
-    
-    /* Layout */
+    font-size: 0.8rem;     
+    line-height: 1.7;       
+    letter-spacing: 0.01em; 
+    color: rgba(0, 0, 0, 0.85); 
     margin-bottom: 10px;
     
-    /* Interaction */
+    /* Allow Text Selection */
     user-select: text !important;
     -webkit-user-select: text !important;
     cursor: text !important;
 }
 
+/* Portrait Logic */
+.bio-layout-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;             
+    flex-direction: column;
+    padding:10px;
+    padding-top: 50px;      
+}
 
-
-/* =========================================
-   3. THE CREDITS (Fixed at Bottom)
-   ========================================= */
-.credits-content {
-    display: flex;          /* Enables side-by-side layout */
-    justify-content: space-between; /* Pushes text LEFT and dot RIGHT */
-    align-items: flex-end;    /* Keeps them vertically centered with each other */
+.portrait-container {
+    position: relative;
+    width: 100%; 
+    height: auto;
     flex-shrink: 0;
-    padding: 20px 40px;
-    background: rgba(255, 255, 255, 0.3);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    
-    /* Typography */
-    font-size: 0.75rem;
-    line-height: 1.5;
-    color: rgba(0, 0, 0, 0.6);
-    text-align: left;
-
 }
 
-.credits-content p {
-    margin: 4px 0;
+.bio-portrait {
+    width: 100%;           
+    height: auto;
+    border-radius: 15px;    
+    flex-shrink: 0;  
 }
 
-/* Link Styling */
-.credits-content a {
-    color: inherit;
-    text-decoration: none;
-    font-weight: 600;
-    transition: text-shadow 0.2s;
-}
-
-.credits-content a:hover {
-    text-shadow: rgba(255, 0, 0, 0.5) 0 0 6px;
-}
-
-/* --- CONTACT GROUP (In Credits) --- */
-#fixed-contact-dot {
-    display: flex !important;   /* Force horizontal */
-    flex-direction: row;
-    justify-content: flex-end;  /* Stick to the right */
-    gap: 12px;                  /* Gap between text and dot */
-    cursor: pointer;
-    background: transparent; 
-    margin-bottom: 10px;
-}
-
-/* The Label */
-.contact-text {
-    font-size: 0.75rem;
-    color: rgba(255, 0, 0, 0.6);
-    white-space: nowrap;        /* Keeps "Contact me" on one line */
-    font-weight: 600;
-    pointer-events: none;
-}
-
-/* The Red Dot itself */
-.red-core {
-    width: 12px;
-    height: 12px;
-    background-color: red;
-    border-radius: 50%;
-    flex-shrink: 0;             /* Don't let it squash */
-    transition: all 0.3s ease-in-out;
-}
-
-#fixed-contact-dot:hover .red-core {
-    transform: scale(1.2);
-    box-shadow: 0 0 10px 3px rgba(255, 0, 0, 1);
-}
-
-/* Attach pulse ONLY to the red dot, not the text */
-.red-core::after {
-    content: "";
+.bio-portrait.animated {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 1px solid red;
+    top: 0; left: 0;
     opacity: 0;
-    animation: simplePulse 3s infinite ease-out;
+    transition: opacity 0.2s ease-in-out;
 }
 
-@keyframes simplePulse {
-    0% { width: 100%; height: 100%; opacity: 0.8; }
-    100% { width: 400%; height: 400%; opacity: 0; }
-}
-
-@media (max-width: 1650px) {
-    .type-bio .credits-content {
-        flex-direction: column-reverse; /* Stacks Contact (top) and Credits (bottom) */
-        align-items: flex-start;       /* Align everything to the left */
-        gap: 15px;                     /* Space between the two blocks */
-        padding: 25px 30px !important;
-    }
-
-    .type-bio #fixed-contact-dot {
-        justify-content: flex-start;   /* Keeps dot/text left-aligned */
-        width: 100%;
-        margin-bottom: 5px;            /* Extra breathing room */
-    }
-
-    .type-bio .credits-text-stack {
-        text-align: left;
-    }
-    .type-bio .red-core {
-        order: -1;
-        position: relative; /* THE FIX: Anchors the pulse to the 12px dot */
-    }
-    
-    .type-bio .contact-text {
-        order: 1; /* This forces the text to appear AFTER the dot */
-    }
-    
-    
-}
-/* =========================================
-   MOBILE ADJUSTMENTS
-   ========================================= */
-@media (max-width: 768px) {
-    #about-overlay .glass-card {
-        width: 90vw !important;
-        min-width: unset;
-        max-height: 80vh; /* Slightly smaller on phone */
-    }
-    
-    .card-content.scroll-content {
-        padding: 25px;
-    }
-    
-    .credits-content {
-        padding: 15px 25px;
-    }
+.portrait-container:hover .bio-portrait.animated {
+    opacity: 1;
 }
 
 
 /* =========================================
-   ARCHIVE AND DATABASE
+   7. SECTION: ARCHIVE (DATABASE)
    ========================================= */
 .type-archive .archive-layout {
     display: flex;
     flex-direction: column;
     flex: 1;           /* Takes all available space */
-    min-height: 0;     /* CRITICAL: Allows this section to shrink so footer stays visible */
+    min-height: 0;     /* CRITICAL for nested scrolling */
     overflow: hidden;
-
-}
-.type-archive .credits-content {
-    padding: 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    /* LAYOUT: Prevent it from squashing */
-    flex-shrink: 0;      
-    display: flex;
-    align-items: flex-end;
-    padding-top:20px ;
-    margin-bottom: -20px;
-}
-
-@media (max-width: 768px) {
-    .type-archive .credits-content {
-        flex-direction: column-reverse; /* Stacks Contact (top) and Credits (bottom) */
-        align-items: flex-start;       /* Align everything to the left */
-        gap: 15px;                     /* Space between the two blocks */
-        margin-bottom: 0;
-    }
-
-    .type-archive #fixed-contact-dot {
-        justify-content: flex-start;   /* Keeps dot/text left-aligned */
-        width: 100%;
-    }
-
-    .type-archive .credits-text-stack {
-        text-align: left;
-    }
-    .type-archive .red-core {
-        order: -1;
-        position: relative; /* THE FIX: Anchors the pulse to the 12px dot */
-    }
-    
-    .type-archive .contact-text {
-        order: 1; /* This forces the text to appear AFTER the dot */
-    }
-    
-    
-}
-
-#tag-bar { 
-    display: flex; 
-    gap: 8px; 
-    flex-wrap: wrap;
-    margin: 0; /* Remove any default pushing space */
 }
 
 .database-wrapper {
@@ -793,40 +544,23 @@ header {
     overflow-y: auto; 
     min-height: 0;
     border-top: 1px solid var(--color-border);
-    margin-top: 30px; 
+    margin-top: 50px; 
+    margin-bottom: 20px; 
     transition: -webkit-mask-image 0.3s ease; 
 }
 
-/* Faded state: Applied via JS */
+/* Fade Effect for Scrolling */
 .database-wrapper.is-faded {
     -webkit-mask-image: linear-gradient(to bottom, rgba(0, 47, 167, 0.8), transparent 100%);
     mask-image: linear-gradient(to bottom, rgba(0, 47, 167, 0.8), transparent 100%);
 }
+
+/* Table Styles */
 #artist-database {
-    border-collapse: collapse; /* Removes gaps between borders */
-    table-layout: fixed;       /* 1. Strict Widths: Ignores content length */
-    width: 100%;               /* 2. Forces table to fill the container */
+    border-collapse: collapse; 
+    table-layout: fixed;       
+    width: 100%;               
 }
-
-#artist-database th { 
-    text-align: left;
-    padding: 12px 8px;
-    position: sticky;
-    top: 0; 
-    background: white; /* Solid white so rows don't show behind headers */
-    color: black;
-    z-index: 10;
-    cursor: pointer;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-/* Table Columns */
-#artist-database th:nth-child(1) { width: 7%; }  
-#artist-database th:nth-child(2) { width: 27%; } 
-#artist-database th:nth-child(3) { width: 10%; } 
-#artist-database th:nth-child(4) { width: 14%; } 
-#artist-database th:nth-child(5) { width: 20%; } 
-#artist-database th:nth-child(6) { width: 19%; } 
 
 #artist-database th { 
     text-align: left;
@@ -843,16 +577,21 @@ header {
     text-overflow: ellipsis;
 }
 
-#artist-database th:hover{
-    text-shadow: rgb(0, 47, 167, 0.5) 0 0 8px;
-}
-#artist-database th.active-sort {
-    text-shadow: rgb(0, 47, 167, 1) 0 0 8px;
-}
+#artist-database th:hover { text-shadow: rgb(0, 47, 167, 0.5) 0 0 8px; }
+#artist-database th.active-sort { text-shadow: rgb(0, 47, 167, 1) 0 0 8px; }
+
 #artist-database td {
     padding: 12px 8px;
     border-bottom: 1px solid #e0e0e0;
 }
+
+/* Table Column Widths */
+#artist-database th:nth-child(1) { width: 7%; }  
+#artist-database th:nth-child(2) { width: 27%; } 
+#artist-database th:nth-child(3) { width: 10%; } 
+#artist-database th:nth-child(4) { width: 14%; } 
+#artist-database th:nth-child(5) { width: 20%; } 
+#artist-database th:nth-child(6) { width: 19%; } 
 
 .project-row.has-folder {
     cursor: pointer;
@@ -862,21 +601,17 @@ header {
     box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5);
 }
 
-/* Filter Tags */
-#tag-bar {
-    display: flex;
-    gap: 8px;
+/* Tag/Filter Bar */
+#tag-bar { 
+    display: flex; 
+    gap: 8px; 
     flex-wrap: wrap;
+    margin: 0;
 }
-input, 
-textarea, 
-select, 
-button,
-#tag-bar {
+input, textarea, select, button, #tag-bar {
     font-family: var(--font-main) !important;
     font-size: 12px;
 }
-
 .tag-btn { 
     background: transparent;
     border: 1px solid #e0e0e0; 
@@ -885,28 +620,23 @@ button,
     cursor: pointer;
     transition: all 0.2s ease-in-out; 
 }
-.tag-btn:hover {
-    box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.2);
-}
-.tag-btn.active {
-    box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5);
-    color: black;
-}
+.tag-btn:hover { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.2); }
+.tag-btn.active { box-shadow: inset 0 0 7px 2px rgb(0, 48, 168, 0.5); color: black; }
 
 
 /* =========================================
-   PROJECT PAGE
+   8. SECTION: PROJECT (GRID LAYOUT)
    ========================================= */
-
 .project-grid {
     display: flex; 
     width: 100%;
     height: 100%;
     box-sizing: border-box;
     overflow-x: scroll;
+    padding-bottom: 20px !important;
 }
 
-/* Group 1: Text Info (Meta + Desc) */
+/* Text Group (Meta + Desc) */
 .text-group {
     flex: 0 0 40%; /* 40% Width */
     display: flex;
@@ -914,47 +644,31 @@ button,
     gap: 20px;
     height: 100%;
     padding-top: 10px;
-    padding-right: 20px
-    
+    padding-right: 20px;
 }
 .col-meta { flex: 1; overflow-y: auto; padding-right: 10px; }
-.col-desc {
-    flex: 1.5; 
-    overflow-y: auto; 
-    padding-right: 10px; 
-    cursor:none;
-}
+.col-desc { flex: 1.5; overflow-y: auto; padding-right: 10px; cursor: none; }
 
-#popup-description, 
-#popup-description p, 
-#popup-description span{
-    /* Allow highlighting */
+/* Text Selection Rules for Project */
+#popup-description, #popup-description p, #popup-description span {
     user-select: text !important;
     -webkit-user-select: text !important;
-    
-    /* BRING BACK THE SYSTEM CURSOR (Crucial!) */
     cursor: text !important; 
-    
-    /* Ensure clicks pass through to the text */
     pointer-events: auto !important; 
 }
 
-/* =========================================
-   META DATA "STACKED" LAYOUT
-   ========================================= */
+/* Meta Data Styling */
 .meta-grid {
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Space between each block (Year, Place, etc.) */
+    gap: 20px; 
     margin-top: 40px;
 }
-
 .meta-row {
     display: flex;
-    flex-direction: column; /* Always Stacked */
+    flex-direction: column; 
     width: 100%;
 }
-
 .meta-label {
     width: 100%;
     font-weight: 600; 
@@ -962,34 +676,19 @@ button,
     font-size: 0.75rem;
     letter-spacing: 0.05em;
     opacity: 0.6;
-    
-    /* The Line is now strictly under the title */
     border-bottom: 1.5px solid #e0e0e0; 
     padding-bottom: 4px;
-    margin-bottom: 8px; /* Space between line and content */
-
+    margin-bottom: 8px; 
 }
-
 .meta-value {
     font-size: 0.95rem;
     line-height: 1.4;
     font-weight: 400;
     color: var(--color-text);
     white-space: pre-wrap;
-     user-select: text !important;
-    -webkit-user-select: text !important; /* Safari support */
+    user-select: text !important;
+    -webkit-user-select: text !important;
     cursor: text !important;
-}
-
-/* Group 2: Visuals */
-.col-visual {
-    flex: 1; /* Remaining 60% Width */
-    height: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    position: relative;
-    padding: 10px;
 }
 
 /* Project Typography */
@@ -1009,44 +708,115 @@ button,
     line-height: 1.5;
 }
 
+/* Visuals Group */
+.col-visual {
+    flex: 1; /* Remaining 60% Width */
+    height: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    position: relative;
+    padding: 10px;
+}
+
+
 /* =========================================
-   SCROLL FADE OVERLAY (The "White Shadow")
-.scroll-shadow-overlay {
-    position: fixed;      
-    z-index: 9999;         
-    pointer-events: none; 
+   9. SHARED COMPONENTS (CREDITS & VISUALS)
+   ========================================= */
 
-    height: 60px;          
-    background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgb(255, 0, 0) 90%);
-
-    opacity: 0;
-    transition: opacity 0.3s ease;
+/* --- Credits Footer (Shared) --- */
+.credits-content {
+    display: flex;          
+    justify-content: space-between; 
+    align-items: flex-end;    
+    flex-shrink: 0;
+    padding: 20px 40px;
+    background: rgba(255, 255, 255, 0.3);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.6);
+    text-align: left;
 }
-.scroll-shadow-overlay.is-visible {
-    opacity: 1;
-}
 
-.mobile-card-shadow {
-    position: absolute;
+.type-archive .credits-content,
+.type-project .credits-content {
+    position: absolute;    /* Floats over the content */
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 80px; 
-  
-    background: linear-gradient(to bottom, rgba(255,255,255,0), rgb(255, 255, 255) 90%);
     
-    z-index: 9999;
+    /* Layout */
+    display: flex;
+    justify-content: flex-end; /* Pushes the button to the RIGHT */
+    align-items: center;       /* Vertically centers the dot */
+    
+    /* Visuals */
+    padding: 20px 50px;    /* Matches your card padding */
+    background: rgba(255, 255, 255, 0.5);   
+    z-index: 50;
+    
+    /* Reset borders if needed */
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    margin: 0; /* RESET any old margins */
+}
+.credits-content p { margin: 4px 0; }
+.credits-content a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+    transition: text-shadow 0.2s;
+}
+.credits-content a:hover { text-shadow: rgba(255, 0, 0, 0.5) 0 0 6px; }
+
+/* Contact Dot Group */
+#fixed-contact-dot {
+    display: flex !important;   
+    flex-direction: row;
+    justify-content: flex-end;  
+    gap: 12px;                  
+    cursor: pointer;
+    background: transparent; 
+    margin-bottom: 10px;
+}
+.contact-text {
+    font-size: 0.75rem;
+    color: rgba(255, 0, 0, 0.6);
+    white-space: nowrap;        
+    font-weight: 600;
     pointer-events: none;
-    
+}
+.red-core {
+    width: 12px;
+    height: 12px;
+    background-color: red;
+    position: relative;
+    border-radius: 50%;
+    flex-shrink: 0;            
+    transition: all 0.3s ease-in-out;
+}
+#fixed-contact-dot:hover .red-core {
+    transform: scale(1.2);
+    box-shadow: 0 0 10px 3px rgba(255, 0, 0, 1);
+}
+.red-core::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    border: 1px solid red;
+    opacity: 0;
+    animation: simplePulse 3s infinite ease-out;
+}
+@keyframes simplePulse {
+    0% { width: 100%; height: 100%; opacity: 0.8; }
+    100% { width: 400%; height: 400%; opacity: 0; }
+}
 
-    border-radius: 0; 
-}*/
-
-/* =========================================
-   9. VISUAL INTERACTIONS & MEDIA
-   ========================================= */
-
-/* Generic Visuals */
+/* --- Visuals & Carousel --- */
 .visual-content {
     max-width: 100%;
     max-height: 100%;
@@ -1055,7 +825,6 @@ button,
     object-fit: contain;
 }
 
-/* Clickable Link Images */
 .website-link-img {
     cursor: pointer;
     transition: transform 0.3s, box-shadow 0.3s;
@@ -1065,7 +834,6 @@ button,
     box-shadow: 0 0 7px 2px rgba(0, 47, 167, 0.5);
 }
 
-/* Carousel Logic */
 .carousel-container {
     position: relative;
     width: fit-content;
@@ -1074,23 +842,18 @@ button,
     justify-content: flex-start;
     align-items: flex-start;
 }
-
 .carousel-img {
-    /* Smoothly animate the blur and opacity */
-transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease;    
-    /* Default State (Clear) */
+    transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease;    
     filter: blur(0px);
     opacity: 1;
-    transform: translateZ(0); /* Hardware acceleration helper */
+    transform: translateZ(0); 
 }
-
-/* Loading State (Blurred) */
 .carousel-img.is-loading {
-    filter: blur(20px); /* Heavy blur like the intro */
-    opacity: 0.8;       /* Slight fade, but not white-out */
+    filter: blur(20px); 
+    opacity: 0.8;       
 }
 
-/* Invisible Cursor Zones */
+/* Carousel Click Zones */
 .carousel-click-zone {
     position: absolute;
     top: 0;
@@ -1106,93 +869,115 @@ transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow
     position: absolute;
     top: 0;
     height: 100%;
-    width: 15%; /* Matches the width of your click zones */
-    pointer-events: none; /* Let clicks pass through */
-    opacity: 0; /* Hidden by default */
+    width: 15%; 
+    pointer-events: none; 
+    opacity: 0; 
     transition: opacity 0.3s ease;
-    z-index: 19; /* Above image, below click zones */
+    z-index: 19; 
 }
-
-/* Left Shadow: Fades from Dark to Transparent */
 .shadow-left {
     left: 0;
     background: linear-gradient(to right, rgba(255, 255, 255, 1), transparent);
 }
-
-/* Right Shadow: Fades from Dark to Transparent */
 .shadow-right {
     right: 0;
     background: linear-gradient(to left, rgba(255, 255, 255, 1), transparent);
 }
-/* =========================================
-   INTERLACED CIRCLES LINK (Symbol)
-   ========================================= */
+
+/* Link Symbol (Interlaced Circles) */
 .link-interlaced {
     position: relative;
     cursor: pointer;
     margin: 20px;
 }
-
 .link-interlaced::before, 
 .link-interlaced::after {
     content: '';
     position: absolute;
-
     width: 15px; 
     height: 15px;
     border: 1.5px solid var(--color-blue); 
     border-radius: 50%;
     transition: all 0.3s ease;
 }
-
 .link-interlaced::before { left: 0; z-index: 1; }
 .link-interlaced::after { right: 0; z-index: 0; }
-
-/* HOVER: Pull apart */
 .link-interlaced:hover::before { transform: translateX(-3px); box-shadow: 0 0 7px 2px rgba(0, 47, 167, 0.5);}
 .link-interlaced:hover::after { transform: translateX(3px); box-shadow: 0 0 7px 2px rgba(0, 47, 167, 0.5);}
 
+
 /* =========================================
-   10. MOBILE & VERTICAL LAYOUT (RESPONSIVE)
+   10. RESPONSIVE / MOBILE
    ========================================= */
 
-   
-@media (max-width: 900px), (orientation: portrait) {
+/* Hide Custom Cursor on Touch */
+@media (hover: none) and (pointer: coarse) {
+    #custom-cursor, .cursor-dot, .cursor-circle {
+        display: none !important;
+        opacity: 0 !important;
+    }
+    body { cursor: auto; }
+}
 
+/* Large Screens: Adjust Credits Layout */
+@media (max-width: 1650px) {
+    .type-bio .credits-content {
+        flex-direction: column-reverse; 
+        align-items: flex-start;       
+        gap: 15px;                     
+        padding: 25px 30px !important;
+    }
+    .type-bio #fixed-contact-dot {
+        justify-content: flex-start;   
+        width: 100%;
+        margin-bottom: 5px;            
+    }
+    .type-bio .credits-text-stack { text-align: left; }
+    .type-bio .red-core { order: -1; position: relative; }
+    .type-bio .contact-text { order: 1; }
+    
+}
+
+/* Tablet & Mobile Breakpoint (900px & Portrait) */
+@media (max-width: 900px), (orientation: portrait) {
+    
     /* Reset Glass Card to Full Screen */
     .glass-card, .popup-panel {
         width: 85vw; 
-        height: 85vh; /* Full screen */
+        height: 85vh; 
+        padding-bottom: 70px;
+
     }
 
-    .project-grid, 
-    .archive-layout, 
-    .card-content {
+    .project-grid, .archive-layout, .card-content {
         width: 100%;
-        height: 100%;       /* Fill the card */
-        -webkit-overflow-scrolling: touch; /* Smooth scroll on iPhone */
+        height: 100%;       
+        -webkit-overflow-scrolling: touch; 
 
+    }
+    .database-wrapper {
+        margin-top: 20px;
+    margin-bottom: 0px; 
     }
     
     /* Project Layout: Stacked */
     .project-grid {
         display: flex;
-        flex-direction: column; /* Stack Text on top of Visuals */
+        flex-direction: column; 
         width: 100%;
-        height: auto; /* Allow it to grow as long as needed */
+        height: auto; 
+
     }
 
-    
-    /* Slide 1: Meta + Description (Side-by-side Top) */
+    /* Slide 1: Meta + Description */
     .text-group {
         width: 100%;
         height: auto;
         flex: none;
         flex-direction: row;
-        padding: none;
-        margin: none;
+        padding: 0;
+        margin: 0;
     }
-    
     .col-meta h2 { font-size: 1.4rem; }
     .col-desc p { font-size: 0.9rem; }
     
@@ -1204,85 +989,112 @@ transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow
     .visual-content {
         width: 100%;
         height: auto;
-        max-height: none; /* Remove desktop restriction */
+        max-height: none; 
         object-fit: contain;
     }
 
     /* Mobile Carousel Override */
     .carousel-container {
-        height: auto !important; /* Grow with the image! */
-        display: block;          /* Ensure it wraps the content */
+        height: auto !important; 
+        display: block;          
     }
 
     .close-btn { 
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    }
-    .archive-layout td, 
-    .archive-layout th {
-        /* Top/Bottom: 15px | Left/Right: 10px */
-        
-        /* Optional: Prevent text from hitting the very edge */
-        box-sizing: border-box;
-    }
-    /* 1. The Container: Allow it to scroll sideways */
-    .archive-layout {
-        display: block;        /* Necessary for scrolling to work */
-        width: 100%;
-        overflow-x: auto;      /* Enables the horizontal swipe */
-        -webkit-overflow-scrolling: touch;
+        position: absolute;
+        top: 20px;
+        right: 20px;
     }
 
-    /* 2. The Table: Force it to stay wide enough */
+    /* Archive Table Scrolling */
+    .archive-layout td, 
+    .archive-layout th {
+        box-sizing: border-box;
+    }
+    .archive-layout {
+        display: block;        
+        width: 100%;
+        overflow-x: auto;      
+        -webkit-overflow-scrolling: touch;
+    }
     .archive-layout table {
         width: 100%;
-        min-width: 600px; /* Forces table to be wider than the phone screen */
+        min-width: 600px; 
         border-collapse: separate; 
         border-spacing: 0;
     }
-    
 }
 
-/* =========================================
-   10. MOBILE & VERTICAL LAYOUT (RESPONSIVE)
-   ========================================= */
+/* Mobile Specific (768px) */
 @media (max-width: 768px) {
+    
+    /* Bio / About Adjustments */
+    #about-overlay .glass-card {
+        width: 90vw !important;
+        max-height: 80vh; 
+    }
 
-    /* 1. THE FRAME (Card) - Fixed Window, Anchors Shadow */
+    /* Archive Credits Adjustments */
+    .type-archive .credits-content,
+    .type-project .credits-content {
+        flex-direction: row;        /* Keep them on one line since text is gone */
+        justify-content: flex-end;  /* Push to the RIGHT */
+        align-items: center; 
+    }
+
+    /* 2. Fix the dot/text internal order */
+    .type-archive #fixed-contact-dot,
+    .type-project #fixed-contact-dot {
+        justify-content: flex-end;  /* Ensure internal alignment is right */
+        width: auto;                /* Don't let it take full width */
+        margin-bottom: 0;           /* Remove the extra gap */
+    }
+
+    /* 3. Keep the "Dot Right" visual order */
+    .type-archive .red-core,
+    .type-project .red-core {
+        order: 2;                   /* Moves dot to the end (right) */
+        position: relative;         /* Keeps pulse anchored */
+    }
+    
+    .type-archive .contact-text,
+    .type-project .contact-text {
+        order: 1;                   /* Moves text to the start (left of the dot) */
+    }
+
+    /* Project Grid Overrides */
     .glass-card, .popup-panel {
-        width: 85vw;            /* Your Width Preference */
+        width: 85vw;            
         max-width: 400px !important;
-        height: 85vh;           /* Your Height Preference */
-        position: relative;     /* Anchors the shadow */
-        overflow: hidden;       /* STOPS shadow from scrolling */
+        height: 85vh;           
+        position: relative;     
+        overflow: hidden;       
         display: flex;
         flex-direction: column;
-        padding: 30px !important;  /* Padding moved to Grid so scrollbar is correct */
+        padding: 30px !important; 
+        padding-bottom: 50px !important;
     }
 
-    /* 2. THE CONTENT (Grid) - Scrolls inside the Frame */
     .project-grid {
         display: flex;
-        flex-direction: column; /* Stack items */
+        flex-direction: column; 
         width: 100%;
-        height: 100%;           /* Fill the card */
-        overflow-y: auto;       /* SCROLL HAPPENS HERE */
+        height: 100%;           
+        overflow-y: auto;       
         -webkit-overflow-scrolling: touch; 
     }
-
-    /* 3. THE FIX: Text Groups MUST NOT shrink or scroll */
-    .text-group, 
-    .col-meta, 
-    .col-desc {
-        display: block;          /* Flex sometimes bugs on nested text, Block is safer here */
-        width: 100%;
-        height: auto !important; /* Force full height */
-        flex: 0 0 auto;          /* DO NOT SHRINK to fit screen */
-        overflow: visible !important; /* Never create a scrollbar here */
+    .type-archive .credits-content,
+    .type-project .credits-content {
+        padding: 15px 30px; /* Match mobile card padding */
     }
-
-    /* Order Logic */
+    /* Prevent Text shrinking */
+    .text-group, .col-meta, .col-desc {
+        display: block;          
+        width: 100%;
+        height: auto !important; 
+        flex: 0 0 auto;          
+        overflow: visible !important; 
+    }
+    
     .text-group {
         display: flex;
         flex-direction: column;
@@ -1292,10 +1104,61 @@ transition: filter 0.5s ease, opacity 0.5s ease, transform 0.3s ease, box-shadow
         margin-bottom: 15px;
     }
 
-    /* 4. VISUALS - Ensure images fit */
     .visual-content {
         height: auto;
         width: 100%;
         max-height: none;
     }
+    .tag-btn { 
+    padding: 4px 8px;
+
+}
+}
+
+/* =========================================
+   11. SCROLL SHADOWS
+   ======================================== */
+
+/* Container */
+.has-scroll-shadows {
+    position: relative;
+    /* Ensure no weird overflow hides the shadows */
+    overflow-y: auto; 
+}
+
+/* Base Shadow */
+.scroll-shadow {
+    position: sticky;
+    left: 0;
+    right: 0;
+    height: 60px;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Top Shadow */
+.scroll-shadow.is-top {
+    top: 0;
+    /* NEGATIVE MARGIN: Pulls the text up so it sits UNDER the shadow */
+    margin-bottom: -60px; 
+    
+    /* Gradient: Cyan to Transparent */
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 1) 5%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* Bottom Shadow */
+.scroll-shadow.is-bottom {
+    bottom: 0;
+    /* NEGATIVE MARGIN: Pulls the shadow up so it overlays the text */
+    margin-top: -60px; 
+    
+    /* Gradient: Transparent to Cyan */
+    background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* Visibility State */
+.scroll-shadow.is-visible {
+    opacity: 1;
 }

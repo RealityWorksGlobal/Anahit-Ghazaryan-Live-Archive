@@ -459,67 +459,63 @@ function renderTable(data) {
     });
 }
 
-// Global cache for the shadows so we can remove them later
-let activeShadows = [];
+function initScrollShadows() {
+    const containers = document.querySelectorAll('.has-scroll-shadows');
 
-function updateScrollShadows() {
-    const isMobile = window.innerWidth <= 900 || window.innerHeight > window.innerWidth;
-    
-    if (isMobile) {
-        // MOBILE LOGIC: Shadow goes on the CARD, but we check the CONTENT height
-        document.querySelectorAll('.glass-card').forEach(card => {
-            // Find the scrollable child inside this card
-            const scrollableContent = card.querySelector('.project-grid, .archive-layout, .card-content');
-            
-            // Remove old shadow
-            const oldShadow = card.querySelector('.mobile-card-shadow');
-            if (oldShadow) oldShadow.remove();
-            
-            if (scrollableContent) {
-                // Check if the CONTENT is taller than the CARD
-                const needsScroll = scrollableContent.scrollHeight > card.clientHeight;
+    containers.forEach(container => {
+        // 1. Create Shadows
+        const topShadow = document.createElement('div');
+        topShadow.className = 'scroll-shadow is-top';
+        
+        const bottomShadow = document.createElement('div');
+        bottomShadow.className = 'scroll-shadow is-bottom';
 
-                if (needsScroll) {
-                    const shadow = document.createElement('div');
-                    shadow.className = 'mobile-card-shadow';
-                    card.appendChild(shadow); // Append to the locked Frame
-                    shadow.style.display = 'block';
-                }
+        // 2. Insert (Top first, Bottom last)
+        container.prepend(topShadow); 
+        container.append(bottomShadow);
+
+        // 3. The Check Logic
+        const handleScroll = () => {
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+
+            // Top Shadow
+            if (scrollTop > 10) { 
+                topShadow.classList.add('is-visible');
+            } else {
+                topShadow.classList.remove('is-visible');
             }
-        });
-    } else {
-        // DESKTOP LOGIC (Unchanged)
-        document.querySelectorAll('.scroll-content').forEach(el => {
-            const oldShadow = el.querySelector('.sticky-shadow');
-            if (oldShadow) oldShadow.remove();
 
-            if (el.scrollHeight > el.clientHeight + 5) {
-                const shadow = document.createElement('div');
-                shadow.className = 'sticky-shadow';
-                el.appendChild(shadow);
-                shadow.style.display = 'block';
+            // Bottom Shadow (Check if there is more content below)
+            if (scrollHeight - scrollTop - clientHeight > 10) {
+                bottomShadow.classList.add('is-visible');
+            } else {
+                bottomShadow.classList.remove('is-visible');
             }
+        };
+
+        // 4. Listeners
+        container.addEventListener('scroll', handleScroll);
+        window.addEventListener('resize', handleScroll);
+        
+        // --- NEW: Watch for content changes! ---
+        // This fixes the issue where shadows wait for a scroll
+        const observer = new MutationObserver(() => {
+            handleScroll(); // Re-check whenever content changes
         });
-    }
+        
+        // Start watching the container for new elements/text
+        observer.observe(container, { childList: true, subtree: true, characterData: true });
+        
+        // 5. Initial Check
+        handleScroll();
+    });
 }
 
-function createFloatingShadow(targetEl) {
-    // 1. Measure exactly where the element is on screen
-    const rect = targetEl.getBoundingClientRect();
-    
-    // 2. Create the shadow div
-    const shadow = document.createElement('div');
-    shadow.className = 'scroll-shadow-overlay is-visible';
-    
-    // 3. Position it exactly over the bottom of the target
-    shadow.style.width = rect.width + 'px';
-    shadow.style.left = rect.left + 'px';
-    shadow.style.top = (rect.bottom - 60) + 'px'; // 60px is height of shadow
-    
-    // 4. Append to BODY (so it sits above everything)
-    document.body.appendChild(shadow);
-    activeShadows.push(shadow);
-}
+// Run on load
+document.addEventListener('DOMContentLoaded', initScrollShadows);
+
 
 function updateActiveListFromDOM() {
     const rows = document.querySelectorAll('.project-row');
@@ -772,22 +768,22 @@ function initCarousel(container, images, linkUrl) {
     container.appendChild(shadowLeft);
     container.appendChild(shadowRight);
 
-    // 4. The Zones (15% | 70% | 15%)
-    // LEFT ZONE
+    // LEFT ZONE (Width = 30%)
     const leftZone = document.createElement('div');
     leftZone.className = "carousel-click-zone";
-    leftZone.style.cssText = "position:absolute; top:0; left:0; height:100%; width:15%; z-index:20; cursor:none;";
+    leftZone.style.cssText = "position:absolute; top:0; left:0; height:100%; width:30%; z-index:20; cursor:none;";
     leftZone.onclick = goPrev;
 
-    // RIGHT ZONE
+    // RIGHT ZONE (Width = 30%)
     const rightZone = document.createElement('div');
     rightZone.className = "carousel-click-zone";
-    rightZone.style.cssText = "position:absolute; top:0; right:0; height:100%; width:15%; z-index:20; cursor:none;";
+    rightZone.style.cssText = "position:absolute; top:0; right:0; height:100%; width:30%; z-index:20; cursor:none;";
     rightZone.onclick = goNext;
 
-    // CENTER ZONE
+    // CENTER ZONE (Starts at 30%, Width is 40%)
     const centerZone = document.createElement('a');
-    centerZone.style.cssText = "position:absolute; top:0; left:15%; height:100%; width:70%; z-index:20; cursor:none; display:block;";
+    // Important: 'left:30%' pushes it past the left zone, and 'width:40%' fills the gap
+    centerZone.style.cssText = "position:absolute; top:0; left:30%; height:100%; width:40%; z-index:20; cursor:none; display:block;";
     
     if (linkUrl) {
         centerZone.href = linkUrl;
@@ -1365,10 +1361,19 @@ window.addEventListener('mousedown', (e) => {
 window.addEventListener('mouseup', () => isDragging = false);
 window.addEventListener('mousemove', (e) => {
     if ((isHovering || isDragging) && currentModel) {
+        // 1. Check if we are on mobile (screen width < 768px)
+        const isMobile = window.innerWidth < 768;
+        
+        // 2. Set sensitivity: 0.003 is your current desktop speed.
+        //    We divide it by 4 for mobile so it's not crazy fast.
+        const sensitivity = isMobile ? 0.0008 : 0.003; 
+
         const deltaX = e.clientX - previousMouse.x;
         const deltaY = e.clientY - previousMouse.y;
-        rotVelocity.x += deltaX * 0.003;
-        rotVelocity.y += deltaY * 0.003;
+
+        // 3. Use the new sensitivity variable
+        rotVelocity.x += deltaX * sensitivity;
+        rotVelocity.y += deltaY * sensitivity;
     }
     previousMouse = { x: e.clientX, y: e.clientY };
 });
