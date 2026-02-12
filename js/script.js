@@ -1479,9 +1479,9 @@ window.addEventListener('touchstart', (e) => {
     }
 }, { passive: false });
 
-// 2. TOUCH MOVE (The Smart "Scroll vs Rotate" Logic)
+// 2. TOUCH MOVE (Fixed Math & Sensitivity)
 window.addEventListener('touchmove', (e) => {
-    // Check blocker again just in case
+    // Check blocker
     const isOverlayOpen = document.getElementById('project-overlay').style.display === 'flex' ||
                           document.getElementById('archive-overlay').style.display === 'flex' ||
                           document.getElementById('about-overlay').style.display === 'flex';
@@ -1489,27 +1489,41 @@ window.addEventListener('touchmove', (e) => {
     if (isOverlayOpen) return;
 
     const t = e.touches[0];
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
     
-    // If we moved significantly, mark it as a drag/scroll
-    if (Math.hypot(dx, dy) > 10) {
+    // Calculate TOTAL distance from start (Used ONLY to detect Scroll vs Drag intent)
+    const totalDx = t.clientX - touchStartX;
+    const totalDy = t.clientY - touchStartY;
+    
+    // If we moved significantly, mark it as interaction
+    if (Math.hypot(totalDx, totalDy) > 10) {
         isTouchDrag = true;
     }
 
     // --- DIRECTION CHECK ---
-    // If Vertical movement is greater than Horizontal, assume SCROLLING.
-    if (Math.abs(dy) > Math.abs(dx)) {
+    // If Vertical movement is greater than Horizontal -> IT IS SCROLLING
+    if (Math.abs(totalDy) > Math.abs(totalDx)) {
         isScrolling = true;
         isDragging = false; // Cancel 3D rotation
-        return; // Allow native browser scroll (Do NOT preventDefault)
+        return; // Allow native browser scroll
     }
 
-    // If Horizontal movement is dominant AND we are on a 3D model, ROTATE.
+    // --- ROTATION LOGIC ---
+    // If Horizontal is dominant AND we successfully started a drag on a model
     if (isDragging && currentModel && isHovering && !isScrolling) {
-        e.preventDefault(); // Block browser swipe navigation
-        rotVelocity.x += dx * 0.003;
-        rotVelocity.y += dy * 0.003;
+        e.preventDefault(); // Block browser swipe navigation (Back/Forward gestures)
+        
+        // CORRECTION: Calculate movement since the LAST FRAME, not from the start
+        const deltaX = t.clientX - previousMouse.x;
+        const deltaY = t.clientY - previousMouse.y;
+
+        // SENSITIVITY: 0.003 is too fast for mobile. 
+        // 0.0008 is usually the sweet spot for touch screens.
+        const touchSensitivity = 0.0008; 
+
+        rotVelocity.x += deltaX * touchSensitivity;
+        rotVelocity.y += deltaY * touchSensitivity;
+
+        // CRITICAL: Update previous position for the next frame
         previousMouse = { x: t.clientX, y: t.clientY };
     }
 }, { passive: false });
