@@ -445,8 +445,7 @@ header {
    ========================================= */
 #about-overlay .glass-card {
     width: 40vw !important;
-    max-width: 750px;
-    min-width: 85vw;
+    max-width: 750px !important;
     transform: translateX(-50%);
     display: flex;
     flex-direction: column;
@@ -956,16 +955,14 @@ input, textarea, select, button, #tag-bar {
 
 /* Tablet & Mobile Breakpoint (900px & Portrait) */
 @media (max-width: 900px), (orientation: portrait) {
-    
+
     .glass-card, .popup-panel {
     width: 85vw;
-    margin-top: 70px !important; 
-    
-    /* CHANGE THIS: Use 100vh so the math covers the full screen */
+    margin-top: 60px !important; 
     height: calc(100vh - 170px) !important;
-    
     padding-bottom: 70px;
     }
+
 
     .project-grid, .archive-layout, .card-content {
         width: 100%;
@@ -1069,10 +1066,12 @@ input, textarea, select, button, #tag-bar {
 
 /* Mobile Specific (768px) */
 @media (max-width: 768px) {
+    #about-overlay .glass-card {
+    min-width: 85vw;
+    }
     .title {
     font-size: 1.2rem;
     }
-    
 
 
     /* Archive Credits Adjustments */
@@ -1105,18 +1104,10 @@ input, textarea, select, button, #tag-bar {
 
     /* Project Grid Overrides */
     .glass-card, .popup-panel {
-        width: 85vw;            
-        max-width: 400px !important;
-        height: 85vh;           
-        position: relative;     
-        overflow: hidden;       
-        display: flex;
-        flex-direction: column;
         padding: 30px !important; 
         padding-bottom: 50px !important;
     }
-    /* Project Grid Overrides */
-
+   
     .project-grid {
         display: flex;
         flex-direction: column; 
