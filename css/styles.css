@@ -955,7 +955,7 @@ input, textarea, select, button, #tag-bar {
     .glass-card, .popup-panel {
         width: 85vw;
         margin-top: 120px !important; 
-        height: calc(100vh - 140px) !important;
+        height: calc(85vh - 140px) !important;
         
         padding-bottom: 70px;
 
