@@ -544,7 +544,7 @@ header {
     overflow-y: auto; 
     min-height: 0;
     border-top: 1px solid var(--color-border);
-    margin-top: 50px; 
+    margin-top: 30px; 
     margin-bottom: 20px; 
     transition: -webkit-mask-image 0.3s ease; 
 }
@@ -951,14 +951,15 @@ input, textarea, select, button, #tag-bar {
 /* Tablet & Mobile Breakpoint (900px & Portrait) */
 @media (max-width: 900px), (orientation: portrait) {
     
-    /* Reset Glass Card to Full Screen */
     .glass-card, .popup-panel {
-        width: 85vw;
-        margin-top: 120px !important; 
-        height: calc(85vh - 140px) !important;
-        
-        padding-bottom: 70px;
-
+    width: 85vw;
+    margin-top: 120px !important; 
+    
+    /* CHANGE THIS: Use 100vh so the math covers the full screen */
+    height: calc(100vh - 170px) !important;
+    
+    padding-bottom: 70px;
+}
     }
 
     .project-grid, .archive-layout, .card-content {
