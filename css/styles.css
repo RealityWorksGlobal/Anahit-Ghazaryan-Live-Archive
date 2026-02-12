@@ -446,7 +446,7 @@ header {
 #about-overlay .glass-card {
     width: 40vw !important;
     max-width: 750px;
-    min-width: 400px;
+    min-width: 85vw;
     transform: translateX(-50%);
     display: flex;
     flex-direction: column;
@@ -959,7 +959,7 @@ input, textarea, select, button, #tag-bar {
     
     .glass-card, .popup-panel {
     width: 85vw;
-    margin-top: 50px !important; 
+    margin-top: 70px !important; 
     
     /* CHANGE THIS: Use 100vh so the math covers the full screen */
     height: calc(100vh - 170px) !important;
@@ -1069,12 +1069,11 @@ input, textarea, select, button, #tag-bar {
 
 /* Mobile Specific (768px) */
 @media (max-width: 768px) {
-    
-    /* Bio / About Adjustments */
-    #about-overlay .glass-card {
-        width: 90vw !important;
-        max-height: 80vh; 
+    .title {
+    font-size: 1.2rem;
     }
+    
+
 
     /* Archive Credits Adjustments */
     .type-archive .credits-content,
@@ -1116,6 +1115,7 @@ input, textarea, select, button, #tag-bar {
         padding: 30px !important; 
         padding-bottom: 50px !important;
     }
+    /* Project Grid Overrides */
 
     .project-grid {
         display: flex;
@@ -1153,9 +1153,13 @@ input, textarea, select, button, #tag-bar {
         max-height: none;
     }
     .tag-btn { 
-    padding: 4px 8px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
 
-}
+    }
+    #artist-database td {
+    font-size: 0.8rem;
+    }
 }
 
 /* =========================================

@@ -1537,7 +1537,25 @@ window.addEventListener('touchend', (e) => {
                           document.getElementById('archive-overlay').style.display === 'flex' ||
                           document.getElementById('about-overlay').style.display === 'flex';
 
-    if (isOverlayOpen || isTouchDrag || isScrolling) return; 
+    // 1. If Overlay is open OR we were just scrolling the page -> Do Nothing.
+if (isOverlayOpen || isScrolling) return; 
+
+// 2. If we were DRAGGING (Rotating) -> CLOSE THE MODEL
+if (isTouchDrag) {
+    if (activeDot) {
+        activeDot.classList.remove('is-active-3d');
+        activeDot = null;
+        isHovering = false;
+    }
+    // Stop audio
+    activeDots.forEach(d => {
+        if(d.audio) { 
+            d.audio.pause(); 
+            d.audio.currentTime = 0; 
+        }
+    });
+    return; // Stop here (don't treat it as a click)
+}
     // ----------------------------------------------------------------
 
     const t = e.changedTouches[0];
