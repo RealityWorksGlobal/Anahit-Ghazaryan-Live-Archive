@@ -953,13 +953,12 @@ input, textarea, select, button, #tag-bar {
     
     .glass-card, .popup-panel {
     width: 85vw;
-    margin-top: 90px !important; 
+    margin-top: 50px !important; 
     
     /* CHANGE THIS: Use 100vh so the math covers the full screen */
     height: calc(100vh - 170px) !important;
     
     padding-bottom: 70px;
-}
     }
 
     .project-grid, .archive-layout, .card-content {
@@ -1034,6 +1033,30 @@ input, textarea, select, button, #tag-bar {
         min-width: 600px; 
         border-collapse: separate; 
         border-spacing: 0;
+    }
+    .nav-left a, 
+    .nav-right a,
+    .nav-btn {
+        position: relative; /* Required for the ghost box to stick */
+    }
+
+    /* Create an invisible 'ghost' box around the text */
+    .nav-left a::after, 
+    .nav-right a::after,
+    .nav-btn::after {
+        content: '';
+        position: absolute;
+        
+        /* Extend the click area by 30px in every direction */
+        top: -30px;
+        bottom: -30px;
+        left: -30px;
+        right: -30px;
+        
+        /* Debug: Uncomment red background to see the zone, then delete */
+        /* background: rgba(255, 0, 0, 0.2); */ 
+        
+        z-index: 10000; /* Must be higher than everything else */
     }
 }
 
