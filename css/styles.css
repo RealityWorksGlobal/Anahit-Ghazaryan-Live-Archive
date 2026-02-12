@@ -858,6 +858,12 @@ input, textarea, select, button, #tag-bar {
     opacity: 1;
     transform: translateZ(0); 
 }
+@media (max-width: 1200px) {
+    .carousel-container {
+    width: 100%;       /* Force it to fill the container width */
+    height: auto;      /* Maintain aspect ratio */
+    }
+}
 .carousel-img.is-loading {
     filter: blur(20px); 
     opacity: 0.8;       
@@ -1059,6 +1065,7 @@ input, textarea, select, button, #tag-bar {
         z-index: 10000; /* Must be higher than everything else */
     }
 }
+
 
 /* Mobile Specific (768px) */
 @media (max-width: 768px) {
