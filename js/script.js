@@ -1,8 +1,8 @@
 /* =========================================
    1. GLOBAL CONFIGURATION & VARIABLES
    ========================================= */
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=0&single=true&output=csv&t=" + Date.now();
-const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSLUA-xQwP7pwE-0u6ADXVPnWMtiwZc1E5hGzLWg4SvECjXGHS8iVBltD9tiJfO_NqR_PRLJf_Cye2r/pub?gid=263826725&single=true&output=csv&t=" + Date.now();
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdFKtdcctqcjvUXHfn5lvo0P1hCNUzi20NjJikNSAHZY1NvO3AQ3Cp9irkez5ynzR5fP13Zw8st8AK/pub?gid=596956516&single=true&output=csv&t=" + Date.now();
+const bioSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdFKtdcctqcjvUXHfn5lvo0P1hCNUzi20NjJikNSAHZY1NvO3AQ3Cp9irkez5ynzR5fP13Zw8st8AK/pub?gid=913618890&single=true&output=csv&t=" + Date.now();
 
 // PATHS
 const ASSET_PATH = './assets/';
